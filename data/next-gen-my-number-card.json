@@ -1,0 +1,215 @@
+{
+  "id": "next-gen-my-number-card",
+  "name": "次期マイナンバーカード（新マイナンバーカード）",
+  "nameEn": "Next-Generation My Number Card",
+  "issuer": "デジタル庁 / 地方公共団体情報システム機構（J-LIS）",
+  "legalBasis": "番号法（改正）",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号イ（改正後）",
+  "status": "planned",
+  "plannedRelease": "2026年度中",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B（従来互換）",
+    "contact": "ISO/IEC 7816",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム",
+    "newFeatures": [
+      "暗号アルゴリズムの強化（楕円曲線暗号対応）",
+      "生体認証（顔認証・指紋認証）対応",
+      "券面情報の最小化（性別欄廃止検討、ローマ字氏名追加）"
+    ]
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "接触/非接触デュアルインタフェース（大容量化）",
+    "antenna": "ISO/IEC 14443 Type B 準拠",
+    "changes": [
+      "ICチップの大容量化",
+      "券面記載情報の見直し（氏名にローマ字併記、性別欄廃止検討）",
+      "有効期限の延長（最長10年）",
+      "暗証番号の統合検討"
+    ]
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "PIN認証（統合検討中）",
+        "description": "現行の4種類の暗証番号を統合・簡素化する方向で検討",
+        "types": [
+          { "name": "共通暗証番号", "format": "数字4桁（統合後）", "description": "複数APで共通利用可能にする方向" },
+          { "name": "署名用暗証番号", "format": "英数字6〜16桁", "description": "署名用は別途維持の可能性" }
+        ]
+      },
+      {
+        "name": "生体認証",
+        "description": "顔認証または指紋認証によるPINレス認証",
+        "types": [
+          { "name": "顔認証", "description": "ICチップ内の顔画像とカメラ映像を照合" },
+          { "name": "指紋認証", "description": "指紋センサーによる照合（任意登録）" }
+        ]
+      }
+    ],
+    "encryption": "RSA 2048bit / ECDSA (P-256) / SHA-256（楕円曲線暗号の追加）",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging（AES対応検討）"
+  },
+  "applications": [
+    {
+      "name": "公的個人認証AP (JPKI) - 拡張版",
+      "aid": "D392F000260100000001（変更なしの見込み）",
+      "description": "現行JPKI APの拡張。楕円曲線暗号の証明書追加",
+      "dfStructure": [
+        {
+          "name": "JPKI-AP（拡張版）",
+          "type": "DF",
+          "aid": "D392F000260100000001",
+          "children": [
+            {
+              "name": "署名用電子証明書（RSA）",
+              "type": "EF",
+              "efid": "0001",
+              "description": "現行互換のRSA署名用証明書",
+              "dataFormat": "ASN.1 DER (X.509v3)"
+            },
+            {
+              "name": "署名用電子証明書（ECDSA）※新規",
+              "type": "EF",
+              "efid": "（新規割当予定）",
+              "description": "楕円曲線暗号による署名用証明書（追加予定）",
+              "dataFormat": "ASN.1 DER (X.509v3)",
+              "fields": [
+                { "name": "公開鍵", "description": "ECDSA P-256 公開鍵" },
+                { "name": "署名アルゴリズム", "description": "ecdsa-with-SHA256" }
+              ]
+            },
+            {
+              "name": "利用者証明用電子証明書（RSA）",
+              "type": "EF",
+              "efid": "0003",
+              "description": "現行互換のRSA利用者証明用証明書"
+            },
+            {
+              "name": "利用者証明用電子証明書（ECDSA）※新規",
+              "type": "EF",
+              "efid": "（新規割当予定）",
+              "description": "楕円曲線暗号による利用者証明用証明書（追加予定）"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "券面事項入力補助AP - 拡張版",
+      "aid": "D3921000310001010408（変更可能性あり）",
+      "description": "券面情報のテキストデータ。ローマ字氏名の追加",
+      "dfStructure": [
+        {
+          "name": "券面事項入力補助AP",
+          "type": "DF",
+          "children": [
+            {
+              "name": "基本情報",
+              "type": "EF",
+              "description": "氏名・住所・生年月日等",
+              "fields": [
+                { "name": "氏名（日本語）", "description": "漢字表記の氏名" },
+                { "name": "氏名（ローマ字）※新規", "description": "ローマ字併記の氏名（新規追加）" },
+                { "name": "住所", "description": "住所" },
+                { "name": "生年月日", "description": "YYYYMMDD形式" },
+                { "name": "性別", "description": "廃止検討中（任意記載化の可能性）" },
+                { "name": "個人番号", "description": "12桁のマイナンバー" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "券面事項確認AP - 拡張版",
+      "aid": "D3921000310001010404（変更可能性あり）",
+      "description": "顔写真に加え、生体認証用テンプレートの格納",
+      "dfStructure": [
+        {
+          "name": "券面事項確認AP",
+          "type": "DF",
+          "children": [
+            {
+              "name": "顔写真",
+              "type": "EF",
+              "description": "JPEG2000形式の顔写真（高解像度化の可能性）"
+            },
+            {
+              "name": "顔認証用テンプレート ※新規",
+              "type": "EF",
+              "description": "顔認証マッチング用の特徴量データ"
+            },
+            {
+              "name": "指紋テンプレート ※新規（任意）",
+              "type": "EF",
+              "description": "指紋認証用の特徴量データ（登録は任意）"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "スマートフォン搭載機能 ※新規",
+      "description": "スマートフォンへの電子証明書搭載（Android/iOS）",
+      "note": "ICチップ自体ではなく、スマートフォンのセキュアエレメントに格納",
+      "dfStructure": [
+        {
+          "name": "スマホ用電子証明書",
+          "type": "概念DF",
+          "children": [
+            {
+              "name": "スマホ用利用者証明用電子証明書",
+              "type": "EF",
+              "description": "スマートフォンに搭載される利用者証明用証明書"
+            },
+            {
+              "name": "スマホ用署名用電子証明書",
+              "type": "EF",
+              "description": "スマートフォンに搭載される署名用証明書（今後対応予定）"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "※現行互換", "command": "現行マイナンバーカードのAPDUコマンド体系を継承", "description": "後方互換性を維持" },
+    { "name": "ECDSA COMPUTE DIGITAL SIGNATURE ※新規", "command": "80 2A 00 80 [Lc] [Data] [Le]（アルゴリズム指定変更）", "description": "楕円曲線暗号による電子署名" },
+    { "name": "VERIFY BIOMETRIC ※新規", "command": "（仕様策定中）", "description": "生体認証によるPINレス認証" }
+  ],
+  "verification": {
+    "method": "JPKI（拡張版）+ 生体認証",
+    "provider": "デジタル庁 / J-LIS",
+    "process": [
+      "1. 現行と同様のJPKI認証フロー（後方互換）",
+      "2. ECDSA証明書を使用した認証も可能に",
+      "3. 生体認証（顔/指紋）によるPINレス本人確認",
+      "4. スマートフォン経由の電子証明書を使用した本人確認",
+      "5. OCSPによる証明書有効性確認"
+    ],
+    "notes": "現行カードからの移行期間があるため、RSA/ECDSA両方に対応する必要がある"
+  },
+  "migrationNotes": {
+    "backwardCompatibility": "現行マイナンバーカードのAPDUコマンド・ファイル構造との後方互換性を維持",
+    "transitionPeriod": "現行カードと次期カードが共存する移行期間あり",
+    "keyChanges": [
+      "楕円曲線暗号（ECDSA P-256）の追加対応",
+      "生体認証機能の追加",
+      "暗証番号の統合・簡素化",
+      "券面記載情報の見直し",
+      "ICチップ大容量化",
+      "スマートフォン搭載対応"
+    ]
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "検討段階（デジタル庁ワーキンググループ資料に基づく）",
+    "references": [
+      "デジタル庁 次期マイナンバーカードタスクフォース 最終とりまとめ（2024年3月）",
+      "総務省 マイナンバーカードの機能等のあり方に関する検討会",
+      "デジタル庁 マイナンバーカードと健康保険証の一体化に関する検討会"
+    ],
+    "disclaimer": "本情報は公開資料に基づく推定を含みます。正式仕様は今後変更される可能性があります。"
+  }
+}

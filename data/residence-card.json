@@ -1,0 +1,143 @@
+{
+  "id": "residence-card",
+  "name": "在留カード",
+  "nameEn": "Residence Card",
+  "issuer": "出入国在留管理庁",
+  "legalBasis": "出入国管理及び難民認定法",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号ハ",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム"
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "非接触ICチップ",
+    "antenna": "ISO/IEC 14443 Type B 準拠"
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "BAC (Basic Access Control)",
+        "description": "カード表面のMRZ（機械読取領域）情報から暗号鍵を導出して認証",
+        "derivation": "MRZの在留カード番号＋生年月日＋有効期限から3DES鍵を導出"
+      }
+    ],
+    "encryption": "3DES-CBC",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging"
+  },
+  "applications": [
+    {
+      "name": "在留カードAP",
+      "aid": "A0000002310200000000000000000000",
+      "description": "在留カードの各種情報を格納",
+      "dfStructure": [
+        {
+          "name": "在留カードAP (DF)",
+          "type": "DF",
+          "aid": "A0000002310200000000000000000000",
+          "children": [
+            {
+              "name": "共通データ要素 (EF01)",
+              "type": "EF",
+              "efid": "2F01",
+              "shortEfid": "01",
+              "description": "カード基本情報",
+              "dataFormat": "TLV",
+              "accessCondition": "認証不要",
+              "fields": [
+                { "name": "カード種別", "tag": "5F01", "description": "在留カード/特別永住者証明書の区分" },
+                { "name": "仕様書バージョン", "tag": "5F02", "description": "IC仕様バージョン" }
+              ]
+            },
+            {
+              "name": "記載事項 (EF02)",
+              "type": "EF",
+              "efid": "0002",
+              "shortEfid": "02",
+              "description": "在留カードの記載事項",
+              "dataFormat": "TLV",
+              "accessCondition": "BAC認証後",
+              "fields": [
+                { "name": "在留カード番号", "tag": "5F10", "length": "12バイト", "description": "在留カードの番号" },
+                { "name": "氏名", "tag": "5F11", "encoding": "UTF-8", "description": "在留者の氏名（ローマ字）" },
+                { "name": "国籍・地域", "tag": "5F12", "encoding": "UTF-8", "description": "国籍または地域" },
+                { "name": "生年月日", "tag": "5F13", "encoding": "BCD", "description": "生年月日" },
+                { "name": "性別", "tag": "5F14", "description": "性別コード" },
+                { "name": "在留資格", "tag": "5F15", "encoding": "UTF-8", "description": "在留資格の種類" },
+                { "name": "在留期間", "tag": "5F16", "description": "在留期間" },
+                { "name": "在留期間満了日", "tag": "5F17", "encoding": "BCD", "description": "在留期間の満了日" },
+                { "name": "許可種別", "tag": "5F18", "description": "許可の種別" },
+                { "name": "交付年月日", "tag": "5F19", "encoding": "BCD", "description": "カード交付日" },
+                { "name": "住居地", "tag": "5F1A", "encoding": "UTF-8", "description": "住居地（住所）" }
+              ]
+            },
+            {
+              "name": "顔写真 (EF03)",
+              "type": "EF",
+              "efid": "0003",
+              "shortEfid": "03",
+              "description": "顔写真データ",
+              "dataFormat": "JPEG/JPEG2000",
+              "accessCondition": "BAC認証後",
+              "fields": [
+                { "name": "顔写真データ", "tag": "5F20", "description": "JPEG/JPEG2000形式の顔画像" }
+              ]
+            },
+            {
+              "name": "記載事項変更 (EF04)",
+              "type": "EF",
+              "efid": "0004",
+              "shortEfid": "04",
+              "description": "裏面の記載事項変更",
+              "dataFormat": "TLV",
+              "accessCondition": "BAC認証後",
+              "fields": [
+                { "name": "変更事項", "tag": "5F30", "description": "変更された記載事項" },
+                { "name": "変更日", "tag": "5F31", "description": "変更日（BCD形式）" }
+              ]
+            },
+            {
+              "name": "電子署名 (EF05)",
+              "type": "EF",
+              "efid": "0005",
+              "shortEfid": "05",
+              "description": "記載事項に対する電子署名",
+              "dataFormat": "PKCS#7 SignedData",
+              "accessCondition": "BAC認証後"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C 10 [AID]", "description": "在留カードAP選択" },
+    { "name": "GET CHALLENGE", "command": "00 84 00 00 08", "description": "BAC用乱数取得" },
+    { "name": "MUTUAL AUTHENTICATE", "command": "00 82 00 00 28 [暗号化データ]", "description": "BAC相互認証" },
+    { "name": "SELECT (EF)", "command": "00 A4 02 0C 02 [EF-ID]", "description": "EF選択（セキュアメッセージング適用）" },
+    { "name": "READ BINARY (SM)", "command": "0C B0 [P1] [P2] [Le]", "description": "データ読み取り（セキュアメッセージング）" }
+  ],
+  "verification": {
+    "method": "電子署名検証 + 出入国在留管理庁の照会",
+    "provider": "出入国在留管理庁",
+    "process": [
+      "1. NFCリーダーで非接触通信を確立",
+      "2. 在留カードAPをSELECT",
+      "3. MRZ情報からBAC鍵を導出",
+      "4. GET CHALLENGE → MUTUAL AUTHENTICATEでBAC認証",
+      "5. セキュアメッセージングでEFデータを読み取り",
+      "6. 電子署名を検証してデータの真正性を確認",
+      "7. 出入国在留管理庁の在留カード等番号失効情報照会を実施"
+    ],
+    "onlineCheck": "在留カード等番号失効情報照会（出入国在留管理庁提供）",
+    "notes": "BAC認証のためにカード表面のMRZ読取が必要"
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "在留カードIC仕様",
+    "references": [
+      "出入国在留管理庁 在留カード等のICチップ読取技術仕様",
+      "ICAO Doc 9303 Part 3 (MRTDのBAC仕様準拠)"
+    ]
+  }
+}

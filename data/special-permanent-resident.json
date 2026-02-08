@@ -1,0 +1,122 @@
+{
+  "id": "special-permanent-resident",
+  "name": "特別永住者証明書",
+  "nameEn": "Special Permanent Resident Certificate",
+  "issuer": "出入国在留管理庁（市区町村窓口で交付）",
+  "legalBasis": "日本国との平和条約に基づき日本の国籍を離脱した者等の出入国管理に関する特例法",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号ホ",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム"
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "非接触ICチップ",
+    "antenna": "ISO/IEC 14443 Type B 準拠"
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "BAC (Basic Access Control)",
+        "description": "在留カードと同様、カード表面のMRZ情報から暗号鍵を導出",
+        "derivation": "MRZの証明書番号＋生年月日＋有効期限から3DES鍵を導出"
+      }
+    ],
+    "encryption": "3DES-CBC",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging"
+  },
+  "applications": [
+    {
+      "name": "特別永住者証明書AP",
+      "aid": "A0000002310200000000000000000000",
+      "description": "特別永住者証明書の情報を格納（在留カードと同一AP構成）",
+      "dfStructure": [
+        {
+          "name": "特別永住者証明書AP (DF)",
+          "type": "DF",
+          "aid": "A0000002310200000000000000000000",
+          "children": [
+            {
+              "name": "共通データ要素 (EF01)",
+              "type": "EF",
+              "efid": "2F01",
+              "shortEfid": "01",
+              "description": "カード基本情報（種別：特別永住者証明書）",
+              "dataFormat": "TLV",
+              "accessCondition": "認証不要",
+              "fields": [
+                { "name": "カード種別", "tag": "5F01", "description": "特別永住者証明書を示すコード" },
+                { "name": "仕様書バージョン", "tag": "5F02", "description": "IC仕様バージョン" }
+              ]
+            },
+            {
+              "name": "記載事項 (EF02)",
+              "type": "EF",
+              "efid": "0002",
+              "shortEfid": "02",
+              "description": "特別永住者証明書の記載事項",
+              "dataFormat": "TLV",
+              "accessCondition": "BAC認証後",
+              "fields": [
+                { "name": "証明書番号", "tag": "5F10", "description": "特別永住者証明書番号" },
+                { "name": "氏名", "tag": "5F11", "encoding": "UTF-8", "description": "氏名（ローマ字）" },
+                { "name": "通称名", "tag": "5F11-2", "encoding": "UTF-8", "description": "通称名（日本語表記）" },
+                { "name": "国籍・地域", "tag": "5F12", "encoding": "UTF-8", "description": "国籍または地域" },
+                { "name": "生年月日", "tag": "5F13", "encoding": "BCD", "description": "生年月日" },
+                { "name": "性別", "tag": "5F14", "description": "性別コード" },
+                { "name": "住居地", "tag": "5F1A", "encoding": "UTF-8", "description": "住居地（住所）" },
+                { "name": "有効期限", "tag": "5F17", "encoding": "BCD", "description": "カード有効期限" },
+                { "name": "交付年月日", "tag": "5F19", "encoding": "BCD", "description": "カード交付日" }
+              ]
+            },
+            {
+              "name": "顔写真 (EF03)",
+              "type": "EF",
+              "efid": "0003",
+              "shortEfid": "03",
+              "description": "顔写真データ",
+              "dataFormat": "JPEG/JPEG2000",
+              "accessCondition": "BAC認証後"
+            },
+            {
+              "name": "電子署名 (EF05)",
+              "type": "EF",
+              "efid": "0005",
+              "shortEfid": "05",
+              "description": "記載事項に対する電子署名",
+              "dataFormat": "PKCS#7 SignedData",
+              "accessCondition": "BAC認証後"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C 10 [AID]", "description": "AP選択" },
+    { "name": "GET CHALLENGE", "command": "00 84 00 00 08", "description": "BAC用乱数取得" },
+    { "name": "MUTUAL AUTHENTICATE", "command": "00 82 00 00 28 [暗号化データ]", "description": "BAC相互認証" },
+    { "name": "READ BINARY (SM)", "command": "0C B0 [P1] [P2] [Le]", "description": "セキュアメッセージングでデータ読取" }
+  ],
+  "verification": {
+    "method": "電子署名検証 + 出入国在留管理庁の照会",
+    "provider": "出入国在留管理庁",
+    "process": [
+      "1. NFCリーダーで非接触通信を確立",
+      "2. APをSELECT",
+      "3. MRZ情報からBAC鍵を導出・認証",
+      "4. セキュアメッセージングでEFデータを読み取り",
+      "5. 電子署名を検証してデータの真正性を確認",
+      "6. 出入国在留管理庁の失効情報照会を実施"
+    ],
+    "notes": "在留カードと同一のICチップ仕様・読み取り手順"
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "在留カード等IC仕様（特別永住者証明書共通）",
+    "references": [
+      "出入国在留管理庁 在留カード等ICチップ読取技術仕様",
+      "特別永住者証明書の様式等に関する省令"
+    ]
+  }
+}

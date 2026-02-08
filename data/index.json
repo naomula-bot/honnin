@@ -1,0 +1,50 @@
+{
+  "documents": [
+    {
+      "id": "my-number-card",
+      "file": "my-number-card.json",
+      "name": "マイナンバーカード",
+      "category": "current",
+      "icon": "credit_card"
+    },
+    {
+      "id": "drivers-license",
+      "file": "drivers-license.json",
+      "name": "運転免許証",
+      "category": "current",
+      "icon": "directions_car"
+    },
+    {
+      "id": "residence-card",
+      "file": "residence-card.json",
+      "name": "在留カード",
+      "category": "current",
+      "icon": "flight_land"
+    },
+    {
+      "id": "passport",
+      "file": "passport.json",
+      "name": "旅券（パスポート）",
+      "category": "current",
+      "icon": "menu_book"
+    },
+    {
+      "id": "special-permanent-resident",
+      "file": "special-permanent-resident.json",
+      "name": "特別永住者証明書",
+      "category": "current",
+      "icon": "home"
+    },
+    {
+      "id": "next-gen-my-number-card",
+      "file": "next-gen-my-number-card.json",
+      "name": "次期マイナンバーカード",
+      "category": "planned",
+      "icon": "update"
+    }
+  ],
+  "categories": {
+    "current": "現行書類",
+    "planned": "予定・検討中"
+  }
+}

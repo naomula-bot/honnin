@@ -1,0 +1,11 @@
+{
+  "name": "ic-chip-data-structure-analyzer",
+  "version": "1.0.0",
+  "description": "犯罪収益移転防止法対応 - 本人確認書類ICチップ データ構造アナライザー",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve .",
+    "validate": "node scripts/validate-schemas.js"
+  },
+  "license": "MIT"
+}

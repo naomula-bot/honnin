@@ -1,0 +1,228 @@
+{
+  "id": "passport",
+  "name": "旅券（パスポート）",
+  "nameEn": "Passport (ePassport)",
+  "issuer": "外務省",
+  "legalBasis": "旅券法",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号ニ",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B",
+    "fileSystem": "ICAO Doc 9303 / ISO/IEC 7816-4 LDS (Logical Data Structure)",
+    "biometric": "ICAO Doc 9303 Part 9 (LDS1)"
+  },
+  "physicalSpec": {
+    "size": "ID-3 (125mm × 88mm) 冊子型",
+    "chip": "非接触ICチップ（データページに内蔵）",
+    "antenna": "ISO/IEC 14443 Type B 準拠"
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "BAC (Basic Access Control)",
+        "description": "MRZ（機械読取領域）からセッション鍵を導出",
+        "derivation": "MRZのパスポート番号＋生年月日＋有効期限からKseed→KEnc, KMACを導出"
+      },
+      {
+        "name": "PACE (Password Authenticated Connection Establishment)",
+        "description": "次世代のアクセス制御（BAC代替、より強固）",
+        "note": "日本のパスポートでは2024年以降の新規発行分から対応"
+      },
+      {
+        "name": "PA (Passive Authentication)",
+        "description": "SOD内の電子署名でデータの真正性を検証",
+        "method": "CSCA証明書チェーンによる署名検証"
+      },
+      {
+        "name": "AA (Active Authentication)",
+        "description": "ICチップ固有の秘密鍵で認証（クローン防止）",
+        "method": "INTERNAL AUTHENTICATEによるチャレンジ・レスポンス"
+      }
+    ],
+    "encryption": "3DES-CBC / AES（PACEの場合）",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging"
+  },
+  "applications": [
+    {
+      "name": "eMRTD Application (LDS)",
+      "aid": "A0000002471001",
+      "description": "ICAO LDS（Logical Data Structure）準拠の旅券データ",
+      "dfStructure": [
+        {
+          "name": "eMRTD AP",
+          "type": "DF",
+          "aid": "A0000002471001",
+          "children": [
+            {
+              "name": "EF.COM (Common)",
+              "type": "EF",
+              "efid": "011E",
+              "shortEfid": "1E",
+              "description": "LDSバージョンとデータグループの存在情報",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "LDSバージョン番号", "tag": "5F01", "description": "LDS Version (例: 0108)" },
+                { "name": "Unicode バージョン番号", "tag": "5F36", "description": "Unicode Version" },
+                { "name": "データグループタグリスト", "tag": "5C", "description": "格納されているDGのタグ一覧" }
+              ]
+            },
+            {
+              "name": "EF.SOD (Security Object Document)",
+              "type": "EF",
+              "efid": "011D",
+              "shortEfid": "1D",
+              "description": "各DGのハッシュ値と電子署名（Passive Authentication用）",
+              "dataFormat": "CMS SignedData (RFC 5652)",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "署名アルゴリズム", "description": "SHA-256 with RSA" },
+                { "name": "ハッシュアルゴリズム", "description": "SHA-256" },
+                { "name": "DGハッシュ値リスト", "description": "各DGのハッシュ値一覧" },
+                { "name": "Document Signer証明書", "description": "文書署名者証明書" },
+                { "name": "署名値", "description": "CMS SignedData署名" }
+              ]
+            },
+            {
+              "name": "DG1 (MRZ情報)",
+              "type": "EF",
+              "efid": "0101",
+              "shortEfid": "01",
+              "description": "MRZ（機械読取領域）のデータ",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "MRZデータ", "tag": "61→5F1F", "description": "TD3形式の2行MRZ",
+                  "subFields": [
+                    "文書コード (P)",
+                    "発行国コード (JPN)",
+                    "氏名（姓<<名）",
+                    "旅券番号",
+                    "国籍コード",
+                    "生年月日 (YYMMDD)",
+                    "性別 (M/F)",
+                    "有効期限 (YYMMDD)",
+                    "チェックディジット"
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "DG2 (顔画像)",
+              "type": "EF",
+              "efid": "0102",
+              "shortEfid": "02",
+              "description": "顔のバイオメトリクスデータ",
+              "dataFormat": "CBEFF (ISO 19785) + JPEG/JPEG2000",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "バイオメトリックヘッダ", "tag": "7F61", "description": "CBEFF Header" },
+                { "name": "バイオメトリックデータ", "tag": "7F2E→5F2E", "description": "顔画像（JPEG2000形式）" }
+              ]
+            },
+            {
+              "name": "DG3 (指紋) ※日本は不使用",
+              "type": "EF",
+              "efid": "0103",
+              "shortEfid": "03",
+              "description": "指紋バイオメトリクスデータ（日本のパスポートでは格納されない）",
+              "dataFormat": "CBEFF + WSQ/JPEG2000",
+              "accessCondition": "EAC (Extended Access Control) 認証後",
+              "fields": []
+            },
+            {
+              "name": "DG7 (署名/通常の可視画像) ※オプション",
+              "type": "EF",
+              "efid": "0107",
+              "shortEfid": "07",
+              "description": "署名画像等（オプション、日本は未使用）",
+              "dataFormat": "JPEG/JPEG2000",
+              "accessCondition": "BAC/PACE認証後"
+            },
+            {
+              "name": "DG11 (追加個人情報) ※オプション",
+              "type": "EF",
+              "efid": "010B",
+              "shortEfid": "0B",
+              "description": "追加個人情報（オプション）",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "フルネーム", "tag": "5F0E", "description": "MRZ以外の完全な氏名" },
+                { "name": "出生地", "tag": "5F11", "description": "出生地" },
+                { "name": "完全な生年月日", "tag": "5F42", "description": "YYYYMMDD" }
+              ]
+            },
+            {
+              "name": "DG12 (追加文書情報) ※オプション",
+              "type": "EF",
+              "efid": "010C",
+              "shortEfid": "0C",
+              "description": "文書に関する追加情報（オプション）",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "BAC/PACE認証後"
+            },
+            {
+              "name": "DG14 (セキュリティオプション)",
+              "type": "EF",
+              "efid": "010E",
+              "shortEfid": "0E",
+              "description": "PACE/CA/TA等のセキュリティプロトコル情報",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "認証不要（PACE交渉用）",
+              "fields": [
+                { "name": "SecurityInfos", "tag": "6E", "description": "対応するセキュリティプロトコル一覧" }
+              ]
+            },
+            {
+              "name": "DG15 (Active Authentication公開鍵)",
+              "type": "EF",
+              "efid": "010F",
+              "shortEfid": "0F",
+              "description": "Active Authentication用の公開鍵",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "BAC/PACE認証後",
+              "fields": [
+                { "name": "AA公開鍵", "tag": "6F", "description": "RSA/ECDSA公開鍵" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C 07 A0000002471001", "description": "eMRTD AP選択" },
+    { "name": "GET CHALLENGE", "command": "00 84 00 00 08", "description": "BAC用チャレンジ取得" },
+    { "name": "EXTERNAL AUTHENTICATE", "command": "00 82 00 00 28 [暗号データ]", "description": "BAC認証" },
+    { "name": "SELECT (EF)", "command": "00 A4 02 0C 02 [EF-ID]", "description": "EF選択" },
+    { "name": "READ BINARY (SM)", "command": "0C B0 [P1] [P2] [Le]", "description": "セキュアメッセージングでデータ読取" },
+    { "name": "INTERNAL AUTHENTICATE", "command": "00 88 00 00 [Lc] [乱数]", "description": "Active Authentication" },
+    { "name": "MSE:SET AT (PACE)", "command": "00 22 C1 A4 [Lc] [データ]", "description": "PACE認証セットアップ" },
+    { "name": "GENERAL AUTHENTICATE", "command": "10 86 00 00 [Lc] [データ]", "description": "PACE認証ステップ" }
+  ],
+  "verification": {
+    "method": "BAC/PACE + Passive Authentication + Active Authentication",
+    "provider": "外務省 / ICAO PKD",
+    "process": [
+      "1. MRZをOCRで読み取り",
+      "2. NFCでICチップに接続、eMRTD APをSELECT",
+      "3. BAC認証（MRZ情報から鍵導出→GET CHALLENGE→EXTERNAL AUTHENTICATE）",
+      "4. セキュアメッセージング確立",
+      "5. EF.COM読み取り→DGの存在確認",
+      "6. DG1（MRZ）、DG2（顔写真）を読み取り",
+      "7. EF.SOD読み取り→DGハッシュの署名検証（Passive Authentication）",
+      "8. DG15の公開鍵でActive Authentication（クローン検出）",
+      "9. CSCA証明書でDocument Signer証明書の検証"
+    ],
+    "notes": "日本のCSCA証明書は外務省が管理。ICAO PKDで配布"
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "ICAO Doc 9303 Part 9-12 / 日本eパスポート仕様",
+    "references": [
+      "ICAO Doc 9303 Machine Readable Travel Documents",
+      "BSI TR-03110 Advanced Security Mechanisms for Machine Readable Travel Documents",
+      "外務省 パスポート(IC旅券)技術仕様"
+    ]
+  }
+}

@@ -1,0 +1,194 @@
+{
+  "id": "drivers-license",
+  "name": "運転免許証",
+  "nameEn": "Driver's License",
+  "issuer": "各都道府県公安委員会",
+  "legalBasis": "道路交通法",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号ロ",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム"
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "非接触ICチップ",
+    "antenna": "ISO/IEC 14443 Type B 準拠"
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "PIN認証",
+        "description": "暗証番号1（4桁）+ 暗証番号2（4桁）の2つの暗証番号",
+        "types": [
+          { "name": "暗証番号1", "format": "数字4桁", "retryLimit": 3, "description": "基本情報へのアクセスに使用" },
+          { "name": "暗証番号2", "format": "数字4桁", "retryLimit": 3, "description": "本籍情報へのアクセスに使用" }
+        ]
+      }
+    ],
+    "encryption": "3DES（セキュアメッセージング）",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging (3DES-CBC)"
+  },
+  "applications": [
+    {
+      "name": "運転免許証AP",
+      "aid": "A0000002310100000000000000000000",
+      "description": "運転免許に関する情報を格納",
+      "dfStructure": [
+        {
+          "name": "運転免許証AP (MF/DF)",
+          "type": "DF",
+          "aid": "A0000002310100000000000000000000",
+          "children": [
+            {
+              "name": "共通データ要素 (EF01)",
+              "type": "EF",
+              "efid": "2F01",
+              "shortEfid": "01",
+              "description": "カードの基本情報",
+              "dataFormat": "TLV (JIS X 6320-4)",
+              "accessCondition": "認証不要",
+              "fields": [
+                { "name": "仕様書バージョン番号", "tag": "5F01", "length": "3バイト", "description": "仕様書のバージョン" },
+                { "name": "交付年月日", "tag": "5F02", "length": "4バイト", "encoding": "BCD", "description": "元号+年月日 (BCD形式)" },
+                { "name": "有効期限", "tag": "5F03", "length": "4バイト", "encoding": "BCD", "description": "元号+年月日 (BCD形式)" },
+                { "name": "カード製造業者識別子", "tag": "5F04", "length": "1バイト", "description": "ICカード製造業者コード" }
+              ]
+            },
+            {
+              "name": "暗証番号(PIN)管理 (EF02)",
+              "type": "EF",
+              "efid": "0002",
+              "shortEfid": "02",
+              "description": "PIN検証用内部データ（外部読出し不可）",
+              "accessCondition": "VERIFYコマンドでのみアクセス"
+            },
+            {
+              "name": "記載事項（本籍除く） (EF03)",
+              "type": "EF",
+              "efid": "0003",
+              "shortEfid": "03",
+              "description": "免許証記載事項（本籍を除く）",
+              "dataFormat": "TLV (JIS X 6320-4)",
+              "accessCondition": "暗証番号1の認証後",
+              "fields": [
+                { "name": "JIS X 0208 制御番号", "tag": "5F05", "description": "文字コード制御" },
+                { "name": "氏名", "tag": "5F06", "length": "最大24バイト", "encoding": "JIS X 0208", "description": "免許証記載の氏名" },
+                { "name": "呼び名（カナ）", "tag": "5F07", "length": "最大36バイト", "encoding": "JIS X 0201 (カタカナ)", "description": "氏名のカタカナ表記" },
+                { "name": "通称名", "tag": "5F08", "length": "最大24バイト", "encoding": "JIS X 0208", "description": "通称名（外国籍の場合等）" },
+                { "name": "統一氏名", "tag": "5F09", "length": "最大12バイト", "encoding": "JIS X 0201", "description": "氏名の統一表記" },
+                { "name": "生年月日", "tag": "5F0A", "length": "4バイト", "encoding": "BCD", "description": "元号+年月日 (BCD形式)" },
+                { "name": "住所", "tag": "5F0B", "length": "最大70バイト", "encoding": "JIS X 0208", "description": "免許証記載の住所" },
+                { "name": "交付年月日", "tag": "5F0C", "length": "4バイト", "encoding": "BCD", "description": "元号+年月日 (BCD形式)" },
+                { "name": "照会番号", "tag": "5F0D", "length": "6バイト", "description": "照会用番号" },
+                { "name": "免許証の色区分", "tag": "5F0E", "length": "1バイト", "description": "1:優良(金), 2:一般(青), 3:初回(緑)" },
+                { "name": "有効期限", "tag": "5F0F", "length": "4バイト", "encoding": "BCD", "description": "元号+年月日 (BCD形式)" },
+                { "name": "免許の条件等1", "tag": "5F10", "length": "最大40バイト", "description": "眼鏡等の条件" },
+                { "name": "免許の条件等2", "tag": "5F11", "length": "最大40バイト", "description": "免許条件2" },
+                { "name": "免許の条件等3", "tag": "5F12", "length": "最大40バイト", "description": "免許条件3" },
+                { "name": "免許の条件等4", "tag": "5F13", "length": "最大40バイト", "description": "免許条件4" },
+                { "name": "公安委員会名", "tag": "5F14", "length": "最大20バイト", "encoding": "JIS X 0208", "description": "交付した公安委員会名" },
+                { "name": "免許証番号", "tag": "5F15", "length": "12バイト", "description": "12桁の免許証番号" },
+                { "name": "免許の種類", "tag": "5F16", "description": "取得している免許種別のビットフラグ",
+                  "subFields": [
+                    "大型", "中型", "準中型", "普通", "大特", "大自二", "普自二",
+                    "小特", "原付", "大型二種", "中型二種", "普通二種", "大特二種",
+                    "けん引", "けん引二種"
+                  ]
+                },
+                { "name": "顔写真", "tag": "5F17", "description": "JPEG2000形式の顔写真データ" }
+              ]
+            },
+            {
+              "name": "記載事項（本籍） (EF04)",
+              "type": "EF",
+              "efid": "0004",
+              "shortEfid": "04",
+              "description": "本籍または国籍情報",
+              "dataFormat": "TLV (JIS X 6320-4)",
+              "accessCondition": "暗証番号1＋暗証番号2の両方の認証後",
+              "fields": [
+                { "name": "本籍（国籍等）", "tag": "5F18", "length": "最大70バイト", "encoding": "JIS X 0208", "description": "本籍地または国籍" }
+              ]
+            },
+            {
+              "name": "電子署名 (EF05)",
+              "type": "EF",
+              "efid": "0005",
+              "shortEfid": "05",
+              "description": "記載事項に対する電子署名",
+              "dataFormat": "PKCS#7 SignedData",
+              "accessCondition": "暗証番号1の認証後",
+              "fields": [
+                { "name": "署名データ", "tag": "30", "description": "PKCS#7 SignedData形式の電子署名" },
+                { "name": "署名者証明書", "description": "署名に使用された証明書チェーン" }
+              ]
+            },
+            {
+              "name": "電子署名（本籍） (EF06)",
+              "type": "EF",
+              "efid": "0006",
+              "shortEfid": "06",
+              "description": "本籍情報に対する電子署名",
+              "dataFormat": "PKCS#7 SignedData",
+              "accessCondition": "暗証番号1＋暗証番号2の両方の認証後"
+            },
+            {
+              "name": "記載事項変更（本籍除く） (EF07)",
+              "type": "EF",
+              "efid": "0007",
+              "shortEfid": "07",
+              "description": "記載事項変更履歴（住所変更等）",
+              "dataFormat": "TLV",
+              "accessCondition": "暗証番号1の認証後",
+              "fields": [
+                { "name": "新氏名", "tag": "5F20", "description": "変更後の氏名" },
+                { "name": "新住所", "tag": "5F21", "description": "変更後の住所" },
+                { "name": "変更日", "tag": "5F22", "description": "変更日（BCD形式）" },
+                { "name": "公安委員会名", "tag": "5F23", "description": "変更を記録した公安委員会" }
+              ]
+            },
+            {
+              "name": "記載事項変更（本籍） (EF08)",
+              "type": "EF",
+              "efid": "0008",
+              "shortEfid": "08",
+              "description": "本籍の変更履歴",
+              "dataFormat": "TLV",
+              "accessCondition": "暗証番号1＋暗証番号2の両方の認証後"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C 10 [AID]", "description": "運転免許証AP選択" },
+    { "name": "SELECT (EF)", "command": "00 A4 02 0C 02 [EF-ID]", "description": "EF選択" },
+    { "name": "READ BINARY", "command": "00 B0 [P1] [P2] [Le]", "description": "データ読み取り" },
+    { "name": "VERIFY (PIN1)", "command": "00 20 00 01 04 [PIN1]", "description": "暗証番号1の認証" },
+    { "name": "VERIFY (PIN2)", "command": "00 20 00 02 04 [PIN2]", "description": "暗証番号2の認証" }
+  ],
+  "verification": {
+    "method": "電子署名検証",
+    "provider": "警察庁",
+    "process": [
+      "1. NFCリーダーで非接触通信開始",
+      "2. 運転免許証APをSELECT",
+      "3. 暗証番号1でVERIFY",
+      "4. EF03（記載事項）をREAD BINARY",
+      "5. EF05（電子署名）をREAD BINARY",
+      "6. PKCS#7署名を検証し、データの真正性を確認",
+      "7. 署名者証明書チェーンを確認"
+    ],
+    "notes": "暗証番号を3回連続で誤入力するとロックされる。ロック解除は免許センター等で実施"
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "IC運転免許証仕様 第4版",
+    "references": [
+      "警察庁 IC運転免許証技術仕様書 第4版",
+      "JIS X 6320-4 (ISO/IEC 7816-4)",
+      "道路交通法施行規則"
+    ]
+  }
+}

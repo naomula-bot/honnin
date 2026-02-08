@@ -1,0 +1,241 @@
+{
+  "id": "my-number-card",
+  "name": "マイナンバーカード（個人番号カード）",
+  "nameEn": "My Number Card (Individual Number Card)",
+  "issuer": "地方公共団体情報システム機構（J-LIS）",
+  "legalBasis": "行政手続における特定の個人を識別するための番号の利用等に関する法律（番号法）",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号イ",
+  "standard": {
+    "contactless": "ISO/IEC 14443 Type B",
+    "contact": "ISO/IEC 7816",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム"
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "接触/非接触デュアルインタフェース",
+    "antenna": "ISO/IEC 14443 Type B 準拠"
+  },
+  "security": {
+    "accessControl": [
+      {
+        "name": "PIN認証",
+        "description": "4桁の暗証番号による認証（署名用電子証明書は6〜16桁の英数字）",
+        "types": [
+          { "name": "利用者証明用暗証番号", "format": "数字4桁", "retryLimit": 3 },
+          { "name": "署名用暗証番号", "format": "英数字6〜16桁", "retryLimit": 5 },
+          { "name": "券面事項入力補助用暗証番号", "format": "数字4桁", "retryLimit": 3 },
+          { "name": "個人番号カード用（住基）暗証番号", "format": "数字4桁", "retryLimit": 3 }
+        ]
+      }
+    ],
+    "encryption": "RSA 2048bit / SHA-256",
+    "secureMessaging": "ISO/IEC 7816-4 Secure Messaging"
+  },
+  "applications": [
+    {
+      "name": "公的個人認証AP (JPKI)",
+      "aid": "D392F000260100000001",
+      "description": "署名用電子証明書・利用者証明用電子証明書を格納",
+      "dfStructure": [
+        {
+          "name": "JPKI-AP",
+          "type": "DF",
+          "aid": "D392F000260100000001",
+          "children": [
+            {
+              "name": "署名用電子証明書",
+              "type": "EF",
+              "efid": "0001",
+              "shortEfid": "01",
+              "description": "X.509v3形式の署名用電子証明書",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "署名用PIN認証後アクセス可",
+              "fields": [
+                { "name": "バージョン", "tag": "A0:03", "description": "X.509 v3" },
+                { "name": "シリアル番号", "tag": "02", "description": "証明書のシリアル番号" },
+                { "name": "署名アルゴリズム", "tag": "30", "description": "sha256WithRSAEncryption" },
+                { "name": "発行者", "tag": "30", "description": "Japan Agency for Local Authority Information Systems" },
+                { "name": "有効期間", "tag": "30", "description": "notBefore / notAfter" },
+                { "name": "主体者", "tag": "30", "description": "氏名、生年月日、性別、住所（日本語・UTF-8）" },
+                { "name": "公開鍵", "tag": "30", "description": "RSA 2048bit 公開鍵" },
+                { "name": "拡張領域", "tag": "A3", "description": "CRL配布点、鍵用途、証明書ポリシー等" }
+              ]
+            },
+            {
+              "name": "署名用CA証明書",
+              "type": "EF",
+              "efid": "0002",
+              "shortEfid": "02",
+              "description": "署名用認証局の電子証明書",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "認証不要"
+            },
+            {
+              "name": "署名用秘密鍵",
+              "type": "EF (内部)",
+              "efid": "0017",
+              "description": "署名用RSA秘密鍵（外部読出し不可）",
+              "accessCondition": "署名用PIN認証後、COMPUTE DIGITAL SIGNATUREコマンドでのみ使用"
+            },
+            {
+              "name": "利用者証明用電子証明書",
+              "type": "EF",
+              "efid": "0003",
+              "shortEfid": "03",
+              "description": "X.509v3形式の利用者証明用電子証明書",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "利用者証明用PIN認証後アクセス可",
+              "fields": [
+                { "name": "バージョン", "tag": "A0:03", "description": "X.509 v3" },
+                { "name": "シリアル番号", "tag": "02", "description": "証明書のシリアル番号" },
+                { "name": "署名アルゴリズム", "tag": "30", "description": "sha256WithRSAEncryption" },
+                { "name": "発行者", "tag": "30", "description": "J-LIS利用者証明用認証局" },
+                { "name": "有効期間", "tag": "30", "description": "発行日から5回目の誕生日まで" },
+                { "name": "主体者", "tag": "30", "description": "シリアル番号のみ（氏名等は含まない）" },
+                { "name": "公開鍵", "tag": "30", "description": "RSA 2048bit 公開鍵" }
+              ]
+            },
+            {
+              "name": "利用者証明用CA証明書",
+              "type": "EF",
+              "efid": "0004",
+              "shortEfid": "04",
+              "description": "利用者証明用認証局の電子証明書",
+              "dataFormat": "ASN.1 DER",
+              "accessCondition": "認証不要"
+            },
+            {
+              "name": "利用者証明用秘密鍵",
+              "type": "EF (内部)",
+              "efid": "0018",
+              "description": "利用者証明用RSA秘密鍵（外部読出し不可）",
+              "accessCondition": "利用者証明用PIN認証後、INTERNAL AUTHENTICATEコマンドでのみ使用"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "券面事項入力補助AP",
+      "aid": "D3921000310001010408",
+      "description": "券面記載事項をテキストデータとして格納",
+      "dfStructure": [
+        {
+          "name": "券面事項入力補助AP",
+          "type": "DF",
+          "aid": "D3921000310001010408",
+          "children": [
+            {
+              "name": "マイナンバー",
+              "type": "EF",
+              "efid": "0001",
+              "description": "個人番号（12桁）",
+              "dataFormat": "TLV",
+              "accessCondition": "券面事項入力補助用PIN認証後",
+              "fields": [
+                { "name": "個人番号", "tag": "DF20", "length": "可変", "description": "12桁の個人番号" }
+              ]
+            },
+            {
+              "name": "基本4情報",
+              "type": "EF",
+              "efid": "0002",
+              "description": "氏名・住所・生年月日・性別",
+              "dataFormat": "TLV",
+              "accessCondition": "券面事項入力補助用PIN認証後",
+              "fields": [
+                { "name": "ヘッダ", "tag": "DF21", "description": "データヘッダ" },
+                { "name": "氏名", "tag": "DF22", "length": "最大150バイト", "encoding": "UTF-8", "description": "券面記載の氏名" },
+                { "name": "住所", "tag": "DF23", "length": "最大300バイト", "encoding": "UTF-8", "description": "券面記載の住所" },
+                { "name": "生年月日", "tag": "DF24", "length": "8バイト", "encoding": "UTF-8", "description": "YYYYMMDD形式" },
+                { "name": "性別", "tag": "DF25", "length": "1バイト", "encoding": "UTF-8", "description": "1:男性, 2:女性" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "券面事項確認AP",
+      "aid": "D3921000310001010404",
+      "description": "券面の印刷情報と照合するための情報",
+      "dfStructure": [
+        {
+          "name": "券面事項確認AP",
+          "type": "DF",
+          "aid": "D3921000310001010404",
+          "children": [
+            {
+              "name": "券面事項確認情報",
+              "type": "EF",
+              "efid": "0001",
+              "description": "顔写真のJPEG2000データを含む",
+              "dataFormat": "TLV",
+              "accessCondition": "券面事項確認用PIN認証後またはカード表面のOCR情報による照合後",
+              "fields": [
+                { "name": "顔写真", "tag": "DF40", "description": "JPEG2000形式の顔写真データ" },
+                { "name": "生年月日", "tag": "DF41", "description": "YYYYMMDD形式" },
+                { "name": "有効期限", "tag": "DF42", "description": "YYYYMMDD形式" },
+                { "name": "セキュリティコード", "tag": "DF43", "description": "セキュリティコード" }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "住基AP",
+      "aid": "D392100031000101040C",
+      "description": "住民基本台帳ネットワークシステム用",
+      "dfStructure": [
+        {
+          "name": "住基AP",
+          "type": "DF",
+          "aid": "D392100031000101040C",
+          "children": [
+            {
+              "name": "住民票コード",
+              "type": "EF",
+              "efid": "0001",
+              "description": "住民票コード",
+              "accessCondition": "住基用PIN認証後"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C [Lc] [AID]", "description": "アプリケーション選択" },
+    { "name": "SELECT (EF)", "command": "00 A4 02 0C 02 [EF-ID]", "description": "EFファイル選択" },
+    { "name": "READ BINARY", "command": "00 B0 [P1] [P2] [Le]", "description": "バイナリデータ読み取り" },
+    { "name": "VERIFY", "command": "00 20 00 80 [Lc] [PIN]", "description": "PIN認証" },
+    { "name": "COMPUTE DIGITAL SIGNATURE", "command": "80 2A 00 80 [Lc] [Data] [Le]", "description": "電子署名生成" },
+    { "name": "INTERNAL AUTHENTICATE", "command": "00 88 00 80 [Lc] [Data] [Le]", "description": "内部認証（利用者証明）" },
+    { "name": "GET CHALLENGE", "command": "00 84 00 00 08", "description": "乱数取得" }
+  ],
+  "verification": {
+    "method": "JPKI（公的個人認証サービス）",
+    "provider": "地方公共団体情報システム機構（J-LIS）",
+    "process": [
+      "1. カードリーダーでICチップに接触",
+      "2. JPKI APを選択（SELECT AID）",
+      "3. 利用者証明用電子証明書を読み取り",
+      "4. PIN入力による認証",
+      "5. INTERNAL AUTHENTICATEで本人確認",
+      "6. 証明書の失効確認（OCSP/CRL）",
+      "7. J-LISのOCSPレスポンダで有効性確認"
+    ],
+    "ocsp": "https://ocsp.jpki.go.jp/ （OCSPレスポンダ）",
+    "notes": "犯罪収益移転防止法では、ICチップ内の電子証明書の有効性確認が必須"
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-08",
+    "specVersion": "現行マイナンバーカード仕様",
+    "references": [
+      "公的個人認証サービス 利用者クライアントソフト仕様書",
+      "マイナンバーカード アプリケーション搭載仕様書",
+      "総務省 マイナンバーカードの技術仕様"
+    ]
+  }
+}
