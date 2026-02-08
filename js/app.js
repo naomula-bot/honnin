@@ -7,6 +7,7 @@ const App = {
   data: {},
   index: null,
   bankingKyc: null,
+  refs: null,
   currentDoc: null,
   currentTab: 'structure',
   viewMode: 'detail', // 'detail' or 'compare' or 'banking'
@@ -17,6 +18,8 @@ const App = {
       this.index = await res.json();
       await this.loadAllData();
       await this.loadBankingKyc();
+      await this.loadRefs();
+      this.buildSearchIndex();
       this.renderSidebar();
       this.renderWelcome();
       this.bindEvents();
@@ -44,25 +47,172 @@ const App = {
     }
   },
 
+  async loadRefs() {
+    try {
+      const res = await fetch('data/references.json');
+      this.refs = await res.json();
+    } catch (e) {
+      console.warn('References not loaded:', e);
+    }
+  },
+
+  buildSearchIndex() {
+    this.searchIndex = [];
+    for (const [docId, docData] of Object.entries(this.data)) {
+      const docName = docData.name;
+      (docData.applications || []).forEach(app => {
+        (app.dfStructure || []).forEach(df => {
+          this._indexNode(df, docId, docName, app.name);
+        });
+      });
+    }
+  },
+
+  _indexNode(node, docId, docName, appName) {
+    const entry = {
+      docId, docName, appName,
+      name: node.name,
+      type: node.type,
+      efid: node.efid,
+      tag: '',
+      description: node.description || '',
+      accessCondition: node.accessCondition || '',
+      dataFormat: node.dataFormat || '',
+      fieldRef: this._getFieldRef(docId, node.name)
+    };
+    this.searchIndex.push(entry);
+    (node.fields || []).forEach(f => {
+      this.searchIndex.push({
+        docId, docName, appName,
+        name: f.name,
+        type: 'field',
+        tag: f.tag || '',
+        encoding: f.encoding || '',
+        description: f.description || '',
+        length: f.length || '',
+        parentEf: node.name,
+        fieldRef: this._getFieldRef(docId, f.name)
+      });
+    });
+    (node.children || []).forEach(c => this._indexNode(c, docId, docName, appName));
+  },
+
+  _getFieldRef(docId, fieldName) {
+    if (!this.refs?.fieldRefs?.[docId]) return null;
+    return this.refs.fieldRefs[docId][fieldName] || null;
+  },
+
+  renderRefBadge(fieldRef) {
+    if (!fieldRef || !fieldRef.refs?.length) return '';
+    const sources = this.refs?.sources;
+    if (!sources) return '';
+    const links = fieldRef.refs.map(rId => {
+      const s = sources[rId];
+      if (!s) return '';
+      return `<a href="${s.url}" target="_blank" rel="noopener" title="${s.title}" style="font-size:9px;padding:1px 4px;background:rgba(6,182,212,0.12);color:var(--accent-cyan);border-radius:2px;text-decoration:none;white-space:nowrap;">${s.org}</a>`;
+    }).filter(Boolean).join(' ');
+    const note = fieldRef.note ? `<span style="font-size:10px;color:var(--text-muted);margin-left:4px;" title="${fieldRef.note}">[?]</span>` : '';
+    return `<span style="margin-left:6px;display:inline-flex;gap:2px;align-items:center;">${links}${note}</span>`;
+  },
+
+  renderRefTooltip(fieldRef) {
+    if (!fieldRef) return '';
+    const sources = this.refs?.sources;
+    if (!sources) return '';
+    let html = '<div style="margin-top:4px;">';
+    if (fieldRef.note) {
+      html += `<div style="font-size:10px;color:var(--text-secondary);margin-bottom:4px;">${fieldRef.note}</div>`;
+    }
+    fieldRef.refs.forEach(rId => {
+      const s = sources[rId];
+      if (!s) return;
+      html += `<a href="${s.url}" target="_blank" rel="noopener" style="display:inline-block;font-size:10px;padding:1px 5px;margin:1px 2px;background:rgba(6,182,212,0.1);border:1px solid rgba(6,182,212,0.2);color:var(--accent-cyan);border-radius:3px;text-decoration:none;">${s.title} (${s.type})</a> `;
+    });
+    html += '</div>';
+    return html;
+  },
+
+  searchItems(query) {
+    if (!query || query.length < 1) return [];
+    const q = query.toLowerCase();
+    return this.searchIndex.filter(item => {
+      return (item.name && item.name.toLowerCase().includes(q)) ||
+             (item.tag && item.tag.toLowerCase().includes(q)) ||
+             (item.description && item.description.toLowerCase().includes(q)) ||
+             (item.encoding && item.encoding.toLowerCase().includes(q)) ||
+             (item.parentEf && item.parentEf.toLowerCase().includes(q));
+    });
+  },
+
+  renderSearchResults(query) {
+    const results = this.searchItems(query);
+    const main = document.getElementById('main-content');
+    if (!results.length) {
+      main.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted);">「${this.escapeHtml(query)}」に一致する項目はありません</div>`;
+      return;
+    }
+    // Group by docId
+    const grouped = {};
+    results.forEach(r => {
+      if (!grouped[r.docId]) grouped[r.docId] = { docName: r.docName, items: [] };
+      grouped[r.docId].items.push(r);
+    });
+
+    let html = `<h2 style="font-size:16px;margin-bottom:4px;">「${this.escapeHtml(query)}」の検索結果 <span style="font-size:13px;color:var(--text-muted);">${results.length}件</span></h2>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">全書類を横断してデータ項目を検索</p>`;
+
+    for (const [docId, group] of Object.entries(grouped)) {
+      html += `<div class="tree-container" style="margin-bottom:12px;">
+        <div style="margin-bottom:8px;cursor:pointer;" onclick="App.selectDoc('${docId}')">
+          <strong style="font-size:14px;color:var(--accent-blue);">${group.docName}</strong>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${group.items.length}件</span>
+        </div>
+        <table class="field-table"><thead><tr>
+          <th>項目名</th><th>種別</th><th>Tag</th><th>説明</th><th>根拠</th>
+        </tr></thead><tbody>`;
+      group.items.forEach(item => {
+        const typeBadge = item.type === 'field'
+          ? '<span style="font-size:9px;padding:1px 4px;background:rgba(168,85,247,0.2);color:var(--accent-purple);border-radius:2px;">Field</span>'
+          : `<span class="tree-type-badge ${this.getTypeBadgeClass(item.type)}" style="font-size:9px;">${item.type || 'DF'}</span>`;
+        const parentInfo = item.parentEf ? `<span style="font-size:9px;color:var(--text-muted);">${item.parentEf}</span><br>` : '';
+        html += `<tr>
+          <td><strong>${item.name}</strong></td>
+          <td>${typeBadge}</td>
+          <td class="tag-cell">${item.tag || item.efid || '-'}</td>
+          <td style="font-size:11px;color:var(--text-secondary);">${parentInfo}${item.description}</td>
+          <td>${this.renderRefBadge(item.fieldRef)}${this.renderRefTooltip(item.fieldRef)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+    }
+    main.innerHTML = html;
+  },
+
   bindEvents() {
-    document.getElementById('search-input').addEventListener('input', (e) => {
-      this.filterSidebar(e.target.value);
+    const searchInput = document.getElementById('search-input');
+    let debounceTimer;
+    searchInput.addEventListener('input', (e) => {
+      clearTimeout(debounceTimer);
+      const q = e.target.value.trim();
+      debounceTimer = setTimeout(() => {
+        if (q.length >= 1) {
+          this.viewMode = 'search';
+          document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
+          document.getElementById('btn-compare').classList.remove('btn-active');
+          document.getElementById('btn-banking').classList.remove('btn-active');
+          this.renderSearchResults(q);
+        } else if (this.viewMode === 'search') {
+          this.viewMode = 'detail';
+          if (this.currentDoc) this.renderDetail();
+          else this.renderWelcome();
+        }
+      }, 200);
     });
     document.getElementById('btn-compare').addEventListener('click', () => {
       this.toggleCompareMode();
     });
     document.getElementById('btn-banking').addEventListener('click', () => {
       this.toggleBankingMode();
-    });
-  },
-
-  filterSidebar(query) {
-    const items = document.querySelectorAll('.doc-item');
-    const q = query.toLowerCase();
-    items.forEach(item => {
-      const name = item.dataset.name.toLowerCase();
-      const nameEn = (item.dataset.nameEn || '').toLowerCase();
-      item.style.display = (name.includes(q) || nameEn.includes(q)) ? '' : 'none';
     });
   },
 
@@ -199,13 +349,13 @@ const App = {
           <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${app.description || ''}</div>
           ${app.note ? `<div class="notes-box" style="margin-top:8px;"><strong>Note:</strong> ${app.note}</div>` : ''}
         </div>
-        ${this.renderTreeNodes(app.dfStructure || [])}
+        ${this.renderTreeNodes(app.dfStructure || [], 0, this.currentDoc)}
       </div>`;
     });
     return html;
   },
 
-  renderTreeNodes(nodes, depth = 0) {
+  renderTreeNodes(nodes, depth = 0, docId = null) {
     if (!nodes || !nodes.length) return '';
     return nodes.map(node => {
       const hasChildren = node.children && node.children.length > 0;
@@ -219,6 +369,8 @@ const App = {
       }).join(' | ');
 
       const accessBadge = node.accessCondition ? this.getAccessBadge(node.accessCondition) : '';
+      const nodeRef = docId ? this._getFieldRef(docId, node.name) : null;
+      const refBadge = this.renderRefBadge(nodeRef);
 
       return `
         <div class="tree-node">
@@ -227,13 +379,14 @@ const App = {
             <span class="tree-type-badge ${typeBadgeClass}">${node.type || 'DF'}</span>
             <span class="tree-node-name">${node.name}</span>
             ${accessBadge}
+            ${refBadge}
             <span class="tree-node-id">${idText}</span>
           </div>
           <div class="tree-node-children" id="children-${nodeId}" style="display:none;">
             ${node.description ? `<div class="field-detail-desc" style="margin-left:24px;padding:4px 0;font-size:12px;color:var(--text-secondary);">${node.description}</div>` : ''}
             ${node.dataFormat ? `<div style="margin-left:24px;padding:2px 0;font-size:11px;color:var(--accent-purple);">Format: ${node.dataFormat}</div>` : ''}
-            ${hasFields ? this.renderFieldTable(node.fields) : ''}
-            ${hasChildren ? this.renderTreeNodes(node.children, depth + 1) : ''}
+            ${hasFields ? this.renderFieldTable(node.fields, docId) : ''}
+            ${hasChildren ? this.renderTreeNodes(node.children, depth + 1, docId) : ''}
           </div>
         </div>`;
     }).join('');
@@ -271,21 +424,23 @@ const App = {
     toggle.classList.toggle('expanded', !isVisible);
   },
 
-  renderFieldTable(fields) {
+  renderFieldTable(fields, docId = null) {
     if (!fields || !fields.length) return '';
     let html = `<div class="field-detail"><table class="field-table">
       <thead><tr>
-        <th>Name</th><th>Tag</th><th>Length</th><th>Encoding</th><th>Description</th>
+        <th>Name</th><th>Tag</th><th>Length</th><th>Encoding</th><th>Description</th><th>根拠</th>
       </tr></thead><tbody>`;
     fields.forEach(f => {
       const subFields = f.subFields
         ? `<br><span style="font-size:10px;color:var(--text-muted);">[${f.subFields.join(', ')}]</span>` : '';
+      const fieldRef = docId ? this._getFieldRef(docId, f.name) : null;
       html += `<tr>
         <td>${f.name}</td>
         <td class="tag-cell">${f.tag || '-'}</td>
         <td>${f.length || '-'}</td>
         <td class="encoding-cell">${f.encoding || '-'}</td>
         <td>${f.description || ''}${subFields}</td>
+        <td>${this.renderRefBadge(fieldRef)}${fieldRef ? this.renderRefTooltip(fieldRef) : ''}</td>
       </tr>`;
     });
     html += '</tbody></table></div>';

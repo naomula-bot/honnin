@@ -1,0 +1,283 @@
+{
+  "sources": {
+    "jlis-spec-portal": {
+      "id": "jlis-spec-portal",
+      "title": "J-LIS 利用者クライアントソフト技術仕様（仕様書一覧）",
+      "url": "https://www.j-lis.go.jp/jpki/procedure/procedure1_2_3.html",
+      "org": "J-LIS",
+      "type": "仕様書ポータル"
+    },
+    "jlis-overview": {
+      "id": "jlis-overview",
+      "title": "J-LIS 機能概要説明書（基本4情報取得機能）",
+      "url": "https://www.j-lis.go.jp/file/01_gaiyou.pdf",
+      "org": "J-LIS",
+      "type": "PDF"
+    },
+    "jlis-overview-v5": {
+      "id": "jlis-overview-v5",
+      "title": "J-LIS 機能概要説明書 第5.2版",
+      "url": "https://www.j-lis.go.jp/file/050_gaiyou.pdf",
+      "org": "J-LIS",
+      "type": "PDF"
+    },
+    "jlis-profile": {
+      "id": "jlis-profile",
+      "title": "J-LIS プロファイル仕様書 3.1版（署名用/利用者証明用電子証明書）",
+      "url": "https://www.j-lis.go.jp/file/13_profile_genkou.pdf",
+      "org": "J-LIS",
+      "type": "PDF"
+    },
+    "jlis-cardapi-crypto": {
+      "id": "jlis-cardapi-crypto",
+      "title": "J-LIS カードAPライブラリ CryptoAPI編 第4.7版",
+      "url": "https://www.j-lis.go.jp/file/060_siyou_CardAPI_1_CryptoAPI.pdf",
+      "org": "J-LIS",
+      "type": "PDF"
+    },
+    "digital-agency-ap": {
+      "id": "digital-agency-ap",
+      "title": "デジタル庁 マイナンバーカードのAP構成・安全性概要",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/68bc86d6-94d7-4fe8-a592-302d78828e1f/d8c514f8/20231102_policies_mynumber_pros-and-safety_outline_01.pdf",
+      "org": "デジタル庁",
+      "type": "PDF"
+    },
+    "digital-agency-private": {
+      "id": "digital-agency-private",
+      "title": "デジタル庁 民間事業者向けマイナンバーカード参考資料",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/3f10dd8b-8c2a-4585-9cdc-674ad2112731/19373a59/20240606_policies_mynumber_private-business_outline_02.pdf",
+      "org": "デジタル庁",
+      "type": "PDF"
+    },
+    "kumamoto-interface": {
+      "id": "kumamoto-interface",
+      "title": "熊本広域連合 マイナンバーカード交付申請書作成 インターフェース設計編",
+      "url": "https://www.kumamoto-kouikirengo.jp/information/pdf/bid_03_11-05.pdf",
+      "org": "熊本広域連合",
+      "type": "PDF",
+      "note": "外国人氏名の区切り文字（＿/（））の具体例あり"
+    },
+    "soumu-jumin-spec": {
+      "id": "soumu-jumin-spec",
+      "title": "総務省 住民記録システム標準仕様書 第5.0版",
+      "url": "https://www.soumu.go.jp/main_content/000939004.pdf",
+      "org": "総務省",
+      "type": "PDF",
+      "note": "住基の氏名格納ルール（氏+△+名）。マイナンバーカードの元データ"
+    },
+    "soumu-jumin-portal": {
+      "id": "soumu-jumin-portal",
+      "title": "総務省 住民記録システム標準仕様書ポータル",
+      "url": "https://www.soumu.go.jp/main_sosiki/kenkyu/jichitaishisutemu_hyojunka/02gyosei02_04000147.html",
+      "org": "総務省",
+      "type": "Webページ"
+    },
+    "soumu-furigana": {
+      "id": "soumu-furigana",
+      "title": "総務省 氏名の振り仮名法制化に伴う標準仕様書の検討資料",
+      "url": "https://www.soumu.go.jp/main_content/000898401.pdf",
+      "org": "総務省",
+      "type": "PDF"
+    },
+    "npa-dl-v10": {
+      "id": "npa-dl-v10",
+      "title": "警察庁 IC運転免許証仕様書 V10（令和6年7月19日 丁運発第145号）",
+      "url": "https://www.npa.go.jp/laws/notification/koutuu/menkyo/menkyo20240719_145.pdf",
+      "org": "警察庁",
+      "type": "PDF",
+      "note": "最新のIC運転免許証仕様書。ファイル構造・データフォーマット・暗号方式"
+    },
+    "npa-dl-notification": {
+      "id": "npa-dl-notification",
+      "title": "警察庁 交通局通達一覧",
+      "url": "https://www.npa.go.jp/laws/notification/koutuu.html",
+      "org": "警察庁",
+      "type": "Webページ"
+    },
+    "npa-myna-dl": {
+      "id": "npa-myna-dl",
+      "title": "警察庁 マイナ免許証について",
+      "url": "https://www.npa.go.jp/bureau/traffic/r4kaisei_main.html",
+      "org": "警察庁",
+      "type": "Webページ"
+    },
+    "isa-rc-spec-portal": {
+      "id": "isa-rc-spec-portal",
+      "title": "出入国在留管理庁 在留カード等仕様書の公開について",
+      "url": "https://www.moj.go.jp/isa/applications/disclosure/120424_01.html",
+      "org": "出入国在留管理庁",
+      "type": "Webページ"
+    },
+    "isa-rc-spec-v15": {
+      "id": "isa-rc-spec-v15",
+      "title": "在留カード等仕様書（一般公開用）Ver 1.5",
+      "url": "https://www.moj.go.jp/isa/content/001414093.pdf",
+      "org": "出入国在留管理庁",
+      "type": "PDF",
+      "note": "第一世代在留カードのICチップ仕様書"
+    },
+    "isa-rc-gen2": {
+      "id": "isa-rc-gen2",
+      "title": "第二世代在留カード等仕様書の公開について",
+      "url": "https://www.moj.go.jp/isa/publications/resources/120424_01_00003.html",
+      "org": "出入国在留管理庁",
+      "type": "Webページ",
+      "note": "ECDSA(P-384)への移行。2026年中に完全移行予定"
+    },
+    "isa-rc-app": {
+      "id": "isa-rc-app",
+      "title": "在留カード等読取アプリケーション サポートページ",
+      "url": "https://www.moj.go.jp/isa/applications/procedures/rcc-support.html",
+      "org": "出入国在留管理庁",
+      "type": "Webページ"
+    },
+    "icao-9303": {
+      "id": "icao-9303",
+      "title": "ICAO Doc 9303 Machine Readable Travel Documents（全パート無料公開）",
+      "url": "https://www.icao.int/publications/doc-series/doc-9303",
+      "org": "ICAO",
+      "type": "Webページ"
+    },
+    "icao-9303-part11": {
+      "id": "icao-9303-part11",
+      "title": "ICAO Doc 9303 Part 11 - Security Mechanisms for MRTDs",
+      "url": "https://www.icao.int/sites/default/files/TRIP/Publications/Doc-9303-7th-Part11.pdf",
+      "org": "ICAO",
+      "type": "PDF"
+    },
+    "aml-regulation": {
+      "id": "aml-regulation",
+      "title": "犯罪収益移転防止法 施行規則（e-Gov法令検索）",
+      "url": "https://laws.e-gov.go.jp/law/420M60000F5A001/",
+      "org": "e-Gov",
+      "type": "法令"
+    },
+    "aml-decree": {
+      "id": "aml-decree",
+      "title": "犯罪収益移転防止法 施行令（e-Gov法令検索）",
+      "url": "https://laws.e-gov.go.jp/law/420CO0000000020",
+      "org": "e-Gov",
+      "type": "法令"
+    },
+    "fsa-aml-guide": {
+      "id": "fsa-aml-guide",
+      "title": "金融庁 犯罪収益移転防止法に関する留意事項",
+      "url": "https://www.fsa.go.jp/common/law/guide/hansyuhou.pdf",
+      "org": "金融庁",
+      "type": "PDF"
+    },
+    "fsa-online-kyc": {
+      "id": "fsa-online-kyc",
+      "title": "金融庁 オンライン本人確認方法の概要",
+      "url": "https://www.fsa.go.jp/common/law/guide/kakunin-qa/2.pdf",
+      "org": "金融庁",
+      "type": "PDF"
+    },
+    "npa-jafic": {
+      "id": "npa-jafic",
+      "title": "警察庁JAFIC 犯収法・施行令・施行規則",
+      "url": "https://www.npa.go.jp/sosikihanzai/jafic/hourei/hotop.htm",
+      "org": "警察庁",
+      "type": "Webページ"
+    },
+    "digital-agency-taskforce": {
+      "id": "digital-agency-taskforce",
+      "title": "デジタル庁 次期個人番号カードタスクフォース（全回一覧）",
+      "url": "https://www.digital.go.jp/councils/mynumber-card-renewal",
+      "org": "デジタル庁",
+      "type": "Webページ"
+    },
+    "digital-agency-tf-final": {
+      "id": "digital-agency-tf-final",
+      "title": "次期マイナンバーカード タスクフォース 第4回 最終とりまとめ概要",
+      "url": "https://www.digital.go.jp/assets/contents/node/basic_page/field_ref_resources/58b82d5b-338d-4f5b-be7e-7b771135e2c3/0224434a/20240318_meeting_mynumber-card-renewal_outline_01.pdf",
+      "org": "デジタル庁",
+      "type": "PDF"
+    }
+  },
+  "fieldRefs": {
+    "my-number-card": {
+      "_document": "マイナンバーカード",
+      "_note": "券面事項入力補助APのAPDU仕様書（カードAP仕様書）はJ-LISとの秘密保持契約・開示申請が必要で一般非公開",
+      "JPKI-AP": { "refs": ["jlis-spec-portal", "digital-agency-ap"], "note": "AID: D392F000260100000001" },
+      "署名用電子証明書": { "refs": ["jlis-profile", "jlis-cardapi-crypto"], "note": "X.509v3形式。プロファイル仕様書で証明書構造を定義" },
+      "署名用CA証明書": { "refs": ["jlis-profile"] },
+      "利用者証明用電子証明書": { "refs": ["jlis-profile", "jlis-cardapi-crypto"], "note": "シリアル番号のみ格納（氏名等なし）。プロファイル仕様書で定義" },
+      "利用者証明用CA証明書": { "refs": ["jlis-profile"] },
+      "券面事項入力補助AP": { "refs": ["jlis-overview", "digital-agency-ap"], "note": "基本4情報（氏名・住所・生年月日・性別）を取得。APDU仕様は非公開" },
+      "マイナンバー": { "refs": ["jlis-overview", "digital-agency-ap"], "note": "個人番号(12桁)。EF0001。税務関連取引でのみ利用" },
+      "基本4情報": { "refs": ["jlis-overview", "kumamoto-interface", "soumu-jumin-spec"], "note": "EF0002。DF22=氏名, DF23=住所, DF24=生年月日, DF25=性別" },
+      "氏名": { "refs": ["kumamoto-interface", "soumu-jumin-spec", "soumu-furigana"], "note": "DF22。日本人:「姓△名」、外国人:「アルファベット氏名＿漢字氏名（通称名）」。＿=U+FF3F、（）=U+FF08/FF09" },
+      "住所": { "refs": ["jlis-overview", "soumu-jumin-spec"], "note": "DF23。UTF-8、最大300バイト" },
+      "生年月日": { "refs": ["jlis-overview"], "note": "DF24。YYYYMMDD形式、UTF-8、8バイト" },
+      "性別": { "refs": ["jlis-overview"], "note": "DF25。0x31=男、0x32=女、0x33=その他" },
+      "券面事項確認AP": { "refs": ["digital-agency-ap"], "note": "顔写真JPEG2000等を格納。OCR照合またはPIN認証でアクセス" },
+      "顔写真": { "refs": ["digital-agency-ap"], "note": "JPEG2000形式。券面事項確認AP内" },
+      "PIN認証": { "refs": ["digital-agency-ap", "jlis-overview-v5"], "note": "4種類の暗証番号。利用者証明用/署名用/券面事項入力補助用/住基用" },
+      "住基AP": { "refs": ["digital-agency-ap"], "note": "住民基本台帳ネットワーク用。住民票コードを格納" }
+    },
+    "drivers-license": {
+      "_document": "運転免許証",
+      "運転免許証AP": { "refs": ["npa-dl-v10"], "note": "AID: A0000002310100000000000000000000" },
+      "共通データ要素 (EF01)": { "refs": ["npa-dl-v10"], "note": "MF/EF01。仕様書バージョン・交付日・有効期限。認証不要で読取可" },
+      "暗証番号(PIN)管理 (EF02)": { "refs": ["npa-dl-v10"], "note": "MF/EF02。数字4桁×2種。3回誤入力でロック" },
+      "記載事項（本籍除く） (EF03)": { "refs": ["npa-dl-v10"], "note": "DF1/EF01。暗証番号1で認証後アクセス" },
+      "氏名": { "refs": ["npa-dl-v10"], "note": "Tag 5F06。JIS X 0208、最大24バイト(全角12文字)。姓名は全角スペース(0x2121)区切り" },
+      "呼び名（カナ）": { "refs": ["npa-dl-v10"], "note": "Tag 5F07。JIS X 0201半角カタカナ、最大36バイト。姓名は半角スペース(0x20)区切り" },
+      "通称名": { "refs": ["npa-dl-v10"], "note": "Tag 5F08。JIS X 0208、最大24バイト。外国人のみ" },
+      "統一氏名": { "refs": ["npa-dl-v10"], "note": "Tag 5F09。JIS X 0201、最大12バイト。システム連携用短縮表記" },
+      "住所": { "refs": ["npa-dl-v10"], "note": "Tag 5F0B。JIS X 0208、最大70バイト" },
+      "生年月日": { "refs": ["npa-dl-v10"], "note": "Tag 5F0A。BCD形式。元号コード(1:明治〜5:令和)+YYMMDD" },
+      "免許証番号": { "refs": ["npa-dl-v10"], "note": "Tag 5F15。12桁" },
+      "顔写真": { "refs": ["npa-dl-v10"], "note": "Tag 5F17。JPEG2000形式。DF2/EF01内、暗証番号1+2の両方で認証後" },
+      "本籍（国籍等）": { "refs": ["npa-dl-v10"], "note": "Tag 5F18。DF2/EF01内。暗証番号1+2の両方で認証後" },
+      "電子署名": { "refs": ["npa-dl-v10"], "note": "DF1/EF02。PKCS#7 SignedData。RSA 2048bit" },
+      "免許の種類": { "refs": ["npa-dl-v10"], "note": "Tag 5F16。取得免許種別のビットフラグ" }
+    },
+    "residence-card": {
+      "_document": "在留カード",
+      "在留カードAP": { "refs": ["isa-rc-spec-v15", "isa-rc-spec-portal"], "note": "JIS X 6322(ISO14443)準拠。TDES 2key CBCモード" },
+      "共通データ要素 (EF01)": { "refs": ["isa-rc-spec-v15"], "note": "MF/EF01。カード種別・仕様バージョン" },
+      "氏名": { "refs": ["isa-rc-spec-v15"], "note": "ローマ字表記。UTF-8。パスポート記載に準拠。セキュアメッセージングで保護" },
+      "通称名": { "refs": ["isa-rc-spec-v15"], "note": "日本語通称名。市区町村届出" },
+      "在留カード番号": { "refs": ["isa-rc-spec-v15"], "note": "12桁" },
+      "国籍・地域": { "refs": ["isa-rc-spec-v15"], "note": "UTF-8文字列" },
+      "生年月日": { "refs": ["isa-rc-spec-v15"], "note": "BCD形式" },
+      "性別": { "refs": ["isa-rc-spec-v15"] },
+      "在留資格": { "refs": ["isa-rc-spec-v15"], "note": "UTF-8" },
+      "住居地": { "refs": ["isa-rc-spec-v15"], "note": "UTF-8" },
+      "顔写真": { "refs": ["isa-rc-spec-v15"], "note": "DF1内。BAC認証後" },
+      "電子署名": { "refs": ["isa-rc-spec-v15"], "note": "PKCS#7 SignedData" },
+      "第二世代在留カード": { "refs": ["isa-rc-gen2"], "note": "ECDSA(P-384)。カード種別05-08。2026年中完全移行予定" }
+    },
+    "passport": {
+      "_document": "旅券（パスポート）",
+      "eMRTD Application (LDS)": { "refs": ["icao-9303"], "note": "AID: A0000002471001。ICAO LDS準拠" },
+      "EF.COM (Common)": { "refs": ["icao-9303"], "note": "LDSバージョン、格納DG一覧" },
+      "EF.SOD (Security Object Document)": { "refs": ["icao-9303", "icao-9303-part11"], "note": "CMS SignedData。パッシブ認証用DGハッシュ＋電子署名" },
+      "DG1 (MRZ情報)": { "refs": ["icao-9303"], "note": "TD3形式2行MRZ。氏名は<<区切り(Part 3で定義)" },
+      "氏名": { "refs": ["icao-9303"], "note": "MRZ文字セット(A-Z,0-9,<)。姓<<名。<でスペース置換。Doc 9303 Part 3/4" },
+      "DG2 (顔画像)": { "refs": ["icao-9303"], "note": "CBEFF + JPEG2000。顔バイオメトリクス" },
+      "DG14 (セキュリティオプション)": { "refs": ["icao-9303", "icao-9303-part11"], "note": "PACE/CA/TA対応情報" },
+      "DG15 (Active Authentication公開鍵)": { "refs": ["icao-9303", "icao-9303-part11"], "note": "RSA/ECDSA公開鍵。クローン検出用" },
+      "BAC": { "refs": ["icao-9303-part11"], "note": "MRZからKseed導出→KEnc,KMac生成。3DES-CBC" },
+      "PACE": { "refs": ["icao-9303-part11"], "note": "BACの後継。AES対応。日本は2024年以降新規発行から対応" },
+      "Passive Authentication": { "refs": ["icao-9303-part11"], "note": "SOD内署名でDG真正性検証。CSCA証明書チェーン" },
+      "Active Authentication": { "refs": ["icao-9303-part11"], "note": "チャレンジ・レスポンスでICチップ真正性検証" }
+    },
+    "special-permanent-resident": {
+      "_document": "特別永住者証明書",
+      "特別永住者証明書AP": { "refs": ["isa-rc-spec-v15", "isa-rc-spec-portal"], "note": "在留カードと同一IC仕様。カード種別コードで区分" },
+      "氏名": { "refs": ["isa-rc-spec-v15"], "note": "在留カードと同一。ローマ字表記" },
+      "通称名": { "refs": ["isa-rc-spec-v15"], "note": "特別永住者はほぼ全員が通称名を持つ" }
+    },
+    "next-gen-my-number-card": {
+      "_document": "次期マイナンバーカード",
+      "暗号方式強化": { "refs": ["digital-agency-taskforce", "digital-agency-tf-final"], "note": "RSA2048→RSA3072またはECDSA256/384に移行" },
+      "AP再編": { "refs": ["digital-agency-taskforce", "digital-agency-tf-final"], "note": "4AP→2APに再編。暗証番号も4→2に削減" },
+      "券面変更": { "refs": ["digital-agency-tf-final"], "note": "性別欄削除(ICには記録)、生年月日を西暦化、ローマ字・フリガナを券面に記載" },
+      "生体認証": { "refs": ["digital-agency-taskforce"], "note": "顔認証/指紋認証によるPINレス認証" },
+      "APDU仕様書公開": { "refs": ["digital-agency-taskforce"], "note": "現行は非公開だが、次期カードではAPDU仕様書の公開が予定されている" }
+    }
+  }
+}
