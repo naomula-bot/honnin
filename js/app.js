@@ -500,7 +500,17 @@ const App = {
 
     for (const [docId, doc] of Object.entries(docs)) {
       html += `<div class="tree-container" style="margin-bottom:16px;">
-        <h4 style="font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">${doc.documentName}</h4>`;
+        <h4 style="font-size:14px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">${doc.documentName}</h4>`;
+
+      // Spec note
+      if (doc.specNote) {
+        html += `<div class="disclaimer" style="margin-bottom:12px;">${doc.specNote}</div>`;
+      }
+
+      // References
+      if (doc.references?.length) {
+        html += this.renderReferences(doc.references);
+      }
 
       (doc.nameFields || []).forEach(nf => {
         const fields = nf.fields || [nf];
@@ -651,8 +661,14 @@ const App = {
   renderLegalRequirements(kyc) {
     const legal = kyc.legalRequirements;
     let html = `<h3 style="font-size:15px;margin-bottom:4px;">法定確認項目</h3>
-      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${legal.law} ${legal.article}（${legal.regulation}）</p>
-      <div class="apdu-table-container"><table class="apdu-table">
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${legal.law} ${legal.article}（${legal.regulation}）</p>`;
+
+    // References
+    if (legal.references?.length) {
+      html += this.renderReferences(legal.references);
+    }
+
+    html += `<div class="apdu-table-container"><table class="apdu-table">
         <thead><tr><th>項目</th><th>必須</th><th>説明</th><th>ICチップ</th><th>備考</th></tr></thead><tbody>`;
 
     legal.requiredItems.forEach(item => {
@@ -671,6 +687,31 @@ const App = {
       </tr>`;
     });
     html += '</tbody></table></div>';
+
+    // Amendment notes
+    if (legal.amendmentNotes) {
+      html += `<div style="margin-top:16px;padding:16px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:var(--radius-lg);">
+        <h4 style="font-size:13px;color:var(--accent-orange);margin-bottom:8px;">${legal.amendmentNotes.title}</h4>
+        <ul style="padding-left:16px;">
+          ${legal.amendmentNotes.items.map(i => `<li style="font-size:12px;color:var(--text-secondary);padding:3px 0;">${i}</li>`).join('')}
+        </ul>
+      </div>`;
+    }
+
+    return html;
+  },
+
+  renderReferences(refs) {
+    if (!refs || !refs.length) return '';
+    let html = `<div style="margin-bottom:12px;padding:10px 12px;background:rgba(6,182,212,0.06);border:1px solid rgba(6,182,212,0.15);border-radius:var(--radius);">
+      <div style="font-size:11px;font-weight:600;color:var(--accent-cyan);margin-bottom:6px;">根拠資料</div>`;
+    refs.forEach(ref => {
+      html += `<div style="margin-bottom:4px;">
+        <a href="${ref.url}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent-blue);text-decoration:none;">${ref.title}</a>
+        ${ref.description ? `<span style="font-size:10px;color:var(--text-muted);margin-left:4px;">- ${ref.description}</span>` : ''}
+      </div>`;
+    });
+    html += '</div>';
     return html;
   },
 
