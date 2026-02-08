@@ -6,15 +6,17 @@
 const App = {
   data: {},
   index: null,
+  bankingKyc: null,
   currentDoc: null,
   currentTab: 'structure',
-  viewMode: 'detail', // 'detail' or 'compare'
+  viewMode: 'detail', // 'detail' or 'compare' or 'banking'
 
   async init() {
     try {
       const res = await fetch('data/index.json');
       this.index = await res.json();
       await this.loadAllData();
+      await this.loadBankingKyc();
       this.renderSidebar();
       this.renderWelcome();
       this.bindEvents();
@@ -33,12 +35,24 @@ const App = {
     await Promise.all(promises);
   },
 
+  async loadBankingKyc() {
+    try {
+      const res = await fetch('data/banking-kyc-comparison.json');
+      this.bankingKyc = await res.json();
+    } catch (e) {
+      console.warn('Banking KYC data not loaded:', e);
+    }
+  },
+
   bindEvents() {
     document.getElementById('search-input').addEventListener('input', (e) => {
       this.filterSidebar(e.target.value);
     });
     document.getElementById('btn-compare').addEventListener('click', () => {
       this.toggleCompareMode();
+    });
+    document.getElementById('btn-banking').addEventListener('click', () => {
+      this.toggleBankingMode();
     });
   },
 
@@ -103,6 +117,7 @@ const App = {
     document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
     document.querySelector(`.doc-item[data-id="${docId}"]`)?.classList.add('active');
     document.getElementById('btn-compare').classList.remove('btn-active');
+    document.getElementById('btn-banking').classList.remove('btn-active');
     this.renderDetail();
   },
 
@@ -364,9 +379,304 @@ const App = {
     } else {
       this.viewMode = 'compare';
       document.getElementById('btn-compare').classList.add('btn-active');
+      document.getElementById('btn-banking').classList.remove('btn-active');
       document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
       this.renderComparison();
     }
+  },
+
+  toggleBankingMode() {
+    if (this.viewMode === 'banking') {
+      this.viewMode = 'detail';
+      document.getElementById('btn-banking').classList.remove('btn-active');
+      if (this.currentDoc) {
+        this.renderDetail();
+      } else {
+        this.renderWelcome();
+      }
+    } else {
+      this.viewMode = 'banking';
+      this.bankingTab = 'cif-mapping';
+      document.getElementById('btn-banking').classList.add('btn-active');
+      document.getElementById('btn-compare').classList.remove('btn-active');
+      document.querySelectorAll('.doc-item').forEach(el => el.classList.remove('active'));
+      this.renderBankingKyc();
+    }
+  },
+
+  switchBankingTab(tab) {
+    this.bankingTab = tab;
+    this.renderBankingKyc();
+  },
+
+  renderBankingKyc() {
+    const main = document.getElementById('main-content');
+    const kyc = this.bankingKyc;
+    if (!kyc) { main.innerHTML = '<p>勘定系KYCデータが読み込めませんでした</p>'; return; }
+
+    const tab = this.bankingTab || 'cif-mapping';
+    const tabs = [
+      { id: 'cif-mapping', label: 'CIFマッピング' },
+      { id: 'name-analysis', label: '氏名フィールド分析' },
+      { id: 'cross-issues', label: '書類間の課題' },
+      { id: 'legal-requirements', label: '法定確認項目' }
+    ];
+
+    let html = `
+      <h2 style="font-size:18px;margin-bottom:4px;">勘定系取引 本人確認データ構造比較</h2>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">${kyc.description}</p>
+      <div class="tabs">
+        ${tabs.map(t => `<div class="tab ${tab === t.id ? 'active' : ''}" onclick="App.switchBankingTab('${t.id}')">${t.label}</div>`).join('')}
+      </div>
+      <div id="banking-tab-content">`;
+
+    switch (tab) {
+      case 'cif-mapping': html += this.renderCifMapping(kyc); break;
+      case 'name-analysis': html += this.renderNameAnalysis(kyc); break;
+      case 'cross-issues': html += this.renderCrossIssues(kyc); break;
+      case 'legal-requirements': html += this.renderLegalRequirements(kyc); break;
+    }
+
+    html += '</div>';
+    main.innerHTML = html;
+  },
+
+  getReliabilityBadge(r) {
+    const map = {
+      high: { label: '取得可', cls: 'free' },
+      medium: { label: '条件付', cls: 'pin' },
+      foreignerOnly: { label: '外国人のみ', cls: 'bac' },
+      low: { label: '困難', cls: 'bac' },
+      none: { label: '取得不可', cls: 'planned-label' }
+    };
+    const m = map[r] || map.none;
+    return `<span class="info-badge ${m.cls}">${m.label}</span>`;
+  },
+
+  renderCifMapping(kyc) {
+    const mapping = kyc.bankingDataMapping;
+    const docNames = {
+      'my-number-card': 'マイナンバー',
+      'drivers-license': '運転免許証',
+      'residence-card': '在留カード',
+      'passport': 'パスポート',
+      'special-permanent-resident': '特別永住者'
+    };
+    const docKeys = Object.keys(docNames);
+
+    let html = `<h3 style="font-size:15px;margin-bottom:12px;">${mapping.title}</h3>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${mapping.description}</p>`;
+
+    mapping.cifFields.forEach(cif => {
+      html += `<div class="tree-container" style="margin-bottom:12px;">
+        <div style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+          <strong style="font-size:14px;">${cif.cifField}</strong>
+          <span style="font-size:11px;color:var(--text-muted);">CIF形式: ${cif.cifFormat}</span>
+        </div>
+        <table class="field-table">
+          <thead><tr><th>書類</th><th>取得元</th><th>パース方法</th><th>信頼度</th></tr></thead>
+          <tbody>`;
+      docKeys.forEach(dk => {
+        const src = cif.sources[dk];
+        if (!src) return;
+        html += `<tr>
+          <td><strong>${docNames[dk]}</strong></td>
+          <td style="font-size:11px;font-family:monospace;color:var(--accent-cyan);">${src.field}</td>
+          <td style="font-size:11px;color:var(--text-secondary);">${src.parsing}</td>
+          <td>${this.getReliabilityBadge(src.reliability)}</td>
+        </tr>`;
+      });
+      html += '</tbody></table></div>';
+    });
+
+    return html;
+  },
+
+  renderNameAnalysis(kyc) {
+    const nameData = kyc.nameFieldAnalysis;
+    const docs = nameData.documents;
+    let html = `<h3 style="font-size:15px;margin-bottom:4px;">${nameData.title}</h3>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${nameData.description}</p>`;
+
+    for (const [docId, doc] of Object.entries(docs)) {
+      html += `<div class="tree-container" style="margin-bottom:16px;">
+        <h4 style="font-size:14px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-color);">${doc.documentName}</h4>`;
+
+      (doc.nameFields || []).forEach(nf => {
+        const fields = nf.fields || [nf];
+        fields.forEach(field => {
+          html += `<div style="margin-bottom:12px;padding:12px;background:var(--bg-highlight);border-radius:var(--radius);border:1px solid var(--border-color);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+              <strong style="font-size:13px;">${field.name || nf.source}</strong>
+              ${field.tag ? `<span style="font-family:monospace;font-size:11px;color:var(--accent-cyan);">Tag: ${field.tag}</span>` : ''}
+              ${field.encoding ? `<span style="font-size:11px;color:var(--accent-purple);">${field.encoding}</span>` : ''}
+              ${field.maxLength ? `<span style="font-size:11px;color:var(--text-muted);">Max: ${field.maxLength}</span>` : ''}
+            </div>`;
+
+          const structure = field.structure || nf.structure;
+          if (structure) {
+            // Japanese
+            if (structure.japanese) {
+              html += this.renderNameExample('日本人', structure.japanese);
+            }
+            // Foreigner
+            if (structure.foreigner) {
+              html += this.renderNameExample('外国人', structure.foreigner);
+            }
+            // General example
+            if (structure.example && !structure.japanese) {
+              html += `<div style="margin-top:6px;padding:6px 10px;background:var(--bg-secondary);border-radius:4px;font-family:monospace;font-size:12px;color:var(--accent-green);">${this.escapeHtml(structure.example)}</div>`;
+              if (structure.format) {
+                html += `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Format: ${structure.format}</div>`;
+              }
+              if (structure.notes) {
+                html += `<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${structure.notes}</div>`;
+              }
+            }
+            // Delimiter detail
+            if (structure.delimiter_detail) {
+              html += this.renderDelimiterDetail(structure.delimiter_detail);
+            }
+            // Parsing steps
+            if (structure.parsing) {
+              html += this.renderParsingSteps(structure.parsing);
+            }
+          }
+          html += '</div>';
+        });
+      });
+
+      // Banking mapping
+      const mappingSource = doc.nameFields?.[0];
+      const bm = mappingSource?.bankingMapping;
+      if (bm) {
+        html += `<div style="margin-top:8px;padding:12px;border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius);background:rgba(59,130,246,0.05);">
+          <strong style="font-size:12px;color:var(--accent-blue);">CIFマッピング</strong>
+          <table class="field-table" style="margin-top:8px;">
+            <tbody>
+              <tr><td style="white-space:nowrap"><strong>漢字氏名</strong></td><td style="font-size:11px;">${bm.kanji_name}</td></tr>
+              <tr><td style="white-space:nowrap"><strong>カナ氏名</strong></td><td style="font-size:11px;">${bm.kana_name}</td></tr>
+              <tr><td style="white-space:nowrap"><strong>ローマ字</strong></td><td style="font-size:11px;">${bm.roman_name}</td></tr>
+            </tbody>
+          </table>
+          ${bm.notes ? `<div class="notes-box" style="margin-top:8px;"><strong>Note:</strong> ${bm.notes}</div>` : ''}
+        </div>`;
+      }
+
+      // Limitations
+      if (doc.limitations?.length) {
+        html += `<div style="margin-top:12px;">
+          <strong style="font-size:12px;color:var(--accent-yellow);">制約・注意事項</strong>
+          <ul style="margin-top:6px;padding-left:16px;">
+            ${doc.limitations.map(l => `<li style="font-size:12px;color:var(--text-secondary);padding:2px 0;">${l}</li>`).join('')}
+          </ul>
+        </div>`;
+      }
+
+      html += '</div>';
+    }
+    return html;
+  },
+
+  renderNameExample(label, data) {
+    let html = `<div style="margin-top:8px;padding:8px 10px;background:var(--bg-secondary);border-radius:4px;border-left:3px solid var(--accent-blue);">
+      <div style="font-size:11px;font-weight:600;color:var(--accent-blue);margin-bottom:4px;">${label}</div>`;
+    if (data.example) {
+      html += `<div style="font-family:monospace;font-size:12px;color:var(--accent-green);padding:4px 0;">${this.escapeHtml(data.example)}</div>`;
+    }
+    if (data.format) {
+      html += `<div style="font-size:11px;color:var(--text-muted);">Format: <code>${data.format}</code></div>`;
+    }
+    if (data.notes) {
+      html += `<div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${data.notes}</div>`;
+    }
+    if (data.delimiter_detail) {
+      html += this.renderDelimiterDetail(data.delimiter_detail);
+    }
+    if (data.parsing) {
+      html += this.renderParsingSteps(data.parsing);
+    }
+    html += '</div>';
+    return html;
+  },
+
+  renderDelimiterDetail(dd) {
+    return `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);border-radius:4px;">
+      <div style="font-size:11px;font-weight:600;color:var(--accent-red);margin-bottom:4px;">区切り文字</div>
+      <div style="font-family:monospace;font-size:13px;color:var(--accent-red);font-weight:600;">${this.escapeHtml(dd.char)}</div>
+      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">${dd.description}</div>
+      ${dd.usage ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px;">${dd.usage}</div>` : ''}
+      ${dd.important ? `<div style="font-size:11px;color:var(--accent-yellow);margin-top:4px;font-weight:500;">${dd.important}</div>` : ''}
+    </div>`;
+  },
+
+  renderParsingSteps(steps) {
+    let html = '<div style="margin-top:8px;"><div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">パース手順</div>';
+    steps.forEach(s => {
+      const resultStr = Array.isArray(s.result) ? `[${s.result.map(r => `"${r}"`).join(', ')}]` : s.result;
+      html += `<div style="display:flex;gap:8px;align-items:flex-start;padding:3px 0;">
+        <span style="font-size:10px;background:var(--accent-blue);color:white;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;">${s.step}</span>
+        <div style="font-size:11px;">
+          <span style="color:var(--text-secondary);">${s.action}</span>
+          <span style="color:var(--accent-green);font-family:monospace;margin-left:4px;">${this.escapeHtml(resultStr)}</span>
+        </div>
+      </div>`;
+    });
+    html += '</div>';
+    return html;
+  },
+
+  renderCrossIssues(kyc) {
+    const issues = kyc.nameFieldAnalysis.crossDocumentIssues;
+    let html = '<h3 style="font-size:15px;margin-bottom:12px;">書類間のデータ構造 共通課題</h3>';
+    issues.forEach(issue => {
+      html += `<div class="tree-container" style="margin-bottom:12px;">
+        <h4 style="font-size:14px;color:var(--accent-yellow);margin-bottom:8px;">${issue.issue}</h4>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:8px;">${issue.description}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="padding:10px;background:rgba(239,68,68,0.08);border-radius:var(--radius);border:1px solid rgba(239,68,68,0.2);">
+            <strong style="font-size:11px;color:var(--accent-red);">影響</strong>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${issue.impact}</p>
+          </div>
+          <div style="padding:10px;background:rgba(34,197,94,0.08);border-radius:var(--radius);border:1px solid rgba(34,197,94,0.2);">
+            <strong style="font-size:11px;color:var(--accent-green);">対処法</strong>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${issue.workaround}</p>
+          </div>
+        </div>
+      </div>`;
+    });
+    return html;
+  },
+
+  renderLegalRequirements(kyc) {
+    const legal = kyc.legalRequirements;
+    let html = `<h3 style="font-size:15px;margin-bottom:4px;">法定確認項目</h3>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${legal.law} ${legal.article}（${legal.regulation}）</p>
+      <div class="apdu-table-container"><table class="apdu-table">
+        <thead><tr><th>項目</th><th>必須</th><th>説明</th><th>ICチップ</th><th>備考</th></tr></thead><tbody>`;
+
+    legal.requiredItems.forEach(item => {
+      const reqBadge = item.required === true
+        ? '<span class="info-badge bac">必須</span>'
+        : '<span class="info-badge pin">条件付</span>';
+      const inChip = item.inChip === false
+        ? '<span class="info-badge planned-label">非格納</span>'
+        : '<span class="info-badge free">格納</span>';
+      html += `<tr>
+        <td><strong>${item.name}</strong></td>
+        <td>${reqBadge}</td>
+        <td style="font-size:12px;color:var(--text-secondary);">${item.description}</td>
+        <td>${inChip}</td>
+        <td style="font-size:11px;color:var(--text-muted);">${item.condition || item.bankingNotes || ''}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+    return html;
+  },
+
+  escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   },
 
   renderComparison() {

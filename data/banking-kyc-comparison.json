@@ -1,0 +1,518 @@
+{
+  "title": "勘定系取引 本人確認データ構造比較",
+  "description": "犯罪収益移転防止法に基づく勘定系取引（口座開設、大口取引等）で必要な本人確認データ項目と、各書類のICチップにおけるデータ構造の差異を比較する",
+  "legalRequirements": {
+    "law": "犯罪収益移転防止法（犯収法）",
+    "article": "第4条（取引時確認）",
+    "regulation": "施行規則 第7条",
+    "requiredItems": [
+      {
+        "id": "name",
+        "name": "氏名",
+        "required": true,
+        "description": "本人の氏名（日本人：漢字氏名、外国人：ローマ字氏名＋通称）",
+        "bankingNotes": "CIF（顧客情報ファイル）登録時に漢字氏名・カナ氏名の両方が必要。外国人はローマ字氏名が原本となる"
+      },
+      {
+        "id": "dob",
+        "name": "生年月日",
+        "required": true,
+        "description": "西暦または和暦の生年月日"
+      },
+      {
+        "id": "address",
+        "name": "住居（住所）",
+        "required": true,
+        "description": "現住所"
+      },
+      {
+        "id": "purpose",
+        "name": "取引目的",
+        "required": true,
+        "description": "取引の目的（申告ベース、ICチップには格納されない）",
+        "inChip": false
+      },
+      {
+        "id": "occupation",
+        "name": "職業",
+        "required": true,
+        "description": "職業（申告ベース、ICチップには格納されない）",
+        "inChip": false
+      },
+      {
+        "id": "nationality",
+        "name": "国籍",
+        "required": "conditional",
+        "description": "外国人の場合に必要",
+        "condition": "外国PEPs・外国人取引"
+      },
+      {
+        "id": "residenceStatus",
+        "name": "在留資格・在留期間",
+        "required": "conditional",
+        "description": "外国人の場合に確認が望ましい",
+        "condition": "外国人取引"
+      },
+      {
+        "id": "myNumber",
+        "name": "個人番号（マイナンバー）",
+        "required": "conditional",
+        "description": "マル優、NISA、CRS等の税務関連取引",
+        "condition": "税務関連取引"
+      },
+      {
+        "id": "photo",
+        "name": "顔写真",
+        "required": "conditional",
+        "description": "対面取引における容貌確認、eKYCにおける顔照合",
+        "condition": "対面取引・eKYC"
+      }
+    ]
+  },
+  "nameFieldAnalysis": {
+    "title": "氏名フィールドのデータ構造 詳細分析",
+    "description": "書類によって氏名の格納方法が大きく異なり、特に外国人の場合は通称・フリガナ・ローマ字の扱いが複雑",
+    "documents": {
+      "my-number-card": {
+        "documentName": "マイナンバーカード",
+        "nameFields": [
+          {
+            "source": "券面事項入力補助AP (EF0002)",
+            "tag": "DF22",
+            "encoding": "UTF-8",
+            "maxLength": "150バイト",
+            "format": "単一フィールドに区切り文字で複数情報を格納",
+            "delimiter": "特殊区切り文字",
+            "structure": {
+              "japanese": {
+                "label": "日本人の場合",
+                "example": "山田 太郎",
+                "format": "姓[半角スペース]名",
+                "notes": "漢字氏名のみ。姓名の間は半角スペース"
+              },
+              "foreigner": {
+                "label": "外国人の場合",
+                "example": "SMITH JOHN\\nスミス ジョン\\n山田 ジョン",
+                "format": "ローマ字氏名[LF]カタカナ氏名[LF]通称名（漢字等）",
+                "delimiter_detail": {
+                  "char": "0x0A (Line Feed / LF)",
+                  "description": "改行文字（LF: 0x0A）で各名前表記を区切る",
+                  "usage": "1行目:ローマ字氏名、2行目:カタカナ（フリガナ）、3行目:通称名",
+                  "important": "通称名がない場合は2フィールド（LF1つ）。通称名がある場合は3フィールド（LF2つ）"
+                },
+                "parsing": [
+                  {
+                    "step": 1,
+                    "action": "0x0A (LF) でsplit",
+                    "result": ["ローマ字氏名", "カタカナ氏名", "通称名（存在する場合）"]
+                  },
+                  {
+                    "step": 2,
+                    "action": "各名前を半角スペースで姓名に分割",
+                    "result": ["姓", "名"]
+                  },
+                  {
+                    "step": 3,
+                    "action": "通称名の有無を要素数で判定",
+                    "result": "3要素 → 通称あり、2要素 → 通称なし"
+                  }
+                ]
+              }
+            },
+            "bankingMapping": {
+              "kanji_name": "日本人:そのまま使用 / 外国人:3行目(通称名)をCIF漢字氏名に使用",
+              "kana_name": "日本人:別途取得不可（申告ベース）/ 外国人:2行目をCIFカナ氏名に使用",
+              "roman_name": "日本人:なし / 外国人:1行目を外国人ローマ字氏名に使用",
+              "notes": "日本人のカナ氏名はICチップに格納されていないため、申告またはOCRで取得する必要がある"
+            }
+          },
+          {
+            "source": "署名用電子証明書 (JPKI)",
+            "tag": "Subject DN",
+            "encoding": "UTF-8",
+            "format": "X.509 Subject Distinguished Name内に格納",
+            "structure": {
+              "fields": [
+                { "oid": "2.5.4.4 (SN)", "description": "姓 (Surname)", "example": "山田" },
+                { "oid": "2.5.4.42 (GN)", "description": "名 (Given Name)", "example": "太郎" },
+                { "oid": "2.5.4.3 (CN)", "description": "コモンネーム", "example": "山田 太郎" }
+              ],
+              "foreigner": {
+                "notes": "外国人の場合、SN/GNにローマ字氏名、CNにも同様。通称は含まれない場合がある"
+              }
+            }
+          }
+        ],
+        "limitations": [
+          "カナ氏名（日本人）はICチップ内に格納されていない",
+          "外国人の通称名の有無で区切り文字の数が変わるため、パース処理に注意が必要",
+          "ミドルネームがある外国人の場合、姓名の分割が複雑になる"
+        ]
+      },
+      "drivers-license": {
+        "documentName": "運転免許証",
+        "nameFields": [
+          {
+            "source": "記載事項 EF03",
+            "fields": [
+              {
+                "name": "氏名",
+                "tag": "5F06",
+                "encoding": "JIS X 0208",
+                "maxLength": "24バイト（全角12文字）",
+                "format": "漢字氏名（姓名は全角スペースで区切り）",
+                "structure": {
+                  "japanese": {
+                    "label": "日本人の場合",
+                    "example": "山田　太郎",
+                    "format": "姓[全角スペース]名",
+                    "notes": "JIS X 0208の全角スペース(0x2121)で区切り"
+                  },
+                  "foreigner": {
+                    "label": "外国人の場合",
+                    "example": "スミス　ジョン",
+                    "format": "通称名または片仮名氏名",
+                    "notes": "外国人は通称名が漢字/カナで表記される。ローマ字は格納されない"
+                  }
+                }
+              },
+              {
+                "name": "呼び名（カナ）",
+                "tag": "5F07",
+                "encoding": "JIS X 0201 (半角カタカナ)",
+                "maxLength": "36バイト（半角36文字）",
+                "format": "カタカナの読み仮名",
+                "structure": {
+                  "example": "ﾔﾏﾀﾞ ﾀﾛｳ",
+                  "format": "姓カナ[半角スペース]名カナ",
+                  "notes": "半角カタカナ（JIS X 0201）。姓名は半角スペース(0x20)で区切り",
+                  "foreigner": "外国人は通称のカナまたはローマ字のカナ転写"
+                }
+              },
+              {
+                "name": "通称名",
+                "tag": "5F08",
+                "encoding": "JIS X 0208",
+                "maxLength": "24バイト（全角12文字）",
+                "format": "通称名（外国人の場合に使用）",
+                "structure": {
+                  "notes": "外国人で通称名が登録されている場合にデータが格納される。日本人では空"
+                }
+              },
+              {
+                "name": "統一氏名",
+                "tag": "5F09",
+                "encoding": "JIS X 0201 (ASCII)",
+                "maxLength": "12バイト",
+                "format": "統一的な氏名表記",
+                "structure": {
+                  "notes": "主にシステム間連携用の短縮表記。半角英数カナ"
+                }
+              }
+            ],
+            "bankingMapping": {
+              "kanji_name": "5F06(氏名) を使用。外国人で通称がある場合は 5F08(通称名) も参照",
+              "kana_name": "5F07(呼び名カナ) を使用。半角→全角カタカナ変換が必要な場合あり",
+              "roman_name": "ICチップに格納なし。券面OCRまたは申告で取得",
+              "notes": "文字コードがJIS X 0208/0201のため、UTF-8への変換処理が必要"
+            }
+          }
+        ],
+        "limitations": [
+          "文字コードがJIS X 0208（漢字）/ JIS X 0201（カナ）のため変換が必要",
+          "ローマ字氏名がICチップに格納されていない（外国人でも）",
+          "氏名フィールドが24バイト制限のため、長い外国人名は切り詰められる場合がある",
+          "半角カタカナ（JIS X 0201）は銀行CIFの全角カタカナと異なるため変換必要"
+        ]
+      },
+      "residence-card": {
+        "documentName": "在留カード",
+        "nameFields": [
+          {
+            "source": "記載事項 EF02",
+            "fields": [
+              {
+                "name": "氏名",
+                "tag": "5F11",
+                "encoding": "UTF-8",
+                "format": "ローマ字氏名",
+                "structure": {
+                  "example": "SMITH JOHN MICHAEL",
+                  "format": "姓[スペース]名[スペース]ミドルネーム",
+                  "notes": "パスポート記載のローマ字表記。全て大文字。姓名の区別は位置ベース（最初の単語が姓）ではなく、原則パスポート準拠"
+                }
+              },
+              {
+                "name": "通称名",
+                "tag": "（別タグ or 氏名フィールド内）",
+                "encoding": "UTF-8",
+                "format": "日本語表記の通称名",
+                "structure": {
+                  "example": "山田 ジョン",
+                  "notes": "市区町村に届出された通称名。漢字・カナ混在可能"
+                }
+              }
+            ],
+            "bankingMapping": {
+              "kanji_name": "通称名フィールドを使用（通称が登録されている場合）",
+              "kana_name": "ICチップに格納なし。申告ベースで取得",
+              "roman_name": "5F11(氏名) をそのまま使用",
+              "notes": "ローマ字氏名の姓名分割はパスポートのMRZルールに準じるが、ミドルネームの扱いに注意"
+            }
+          }
+        ],
+        "limitations": [
+          "カナ氏名はICチップ内に格納されていない",
+          "ローマ字氏名の姓名分割ルールが明確でない（国によって姓名の順序が異なる）",
+          "通称名が未登録の場合、CIF漢字氏名にはローマ字をカナ変換して登録する運用が必要"
+        ]
+      },
+      "passport": {
+        "documentName": "旅券（パスポート）",
+        "nameFields": [
+          {
+            "source": "DG1 (MRZ)",
+            "tag": "5F1F",
+            "encoding": "ASCII (MRZ文字セット: A-Z, 0-9, <)",
+            "format": "ICAO MRZ TD3フォーマット",
+            "structure": {
+              "example": "SMITH<<JOHN<MICHAEL<<<<<<<<<<<<<<<",
+              "format": "姓<<名<ミドルネーム[<パディング]",
+              "delimiter_detail": {
+                "char": "< (0x3C)",
+                "description": "「<」（不等号/フィラー文字）で区切り",
+                "usage": "「<<」(ダブル)で姓と名を区切り、「<」(シングル)で名の各部分を区切り",
+                "important": "姓の中にスペースがある場合も「<」で置換される（例: DE<SILVA）"
+              },
+              "parsing": [
+                {
+                  "step": 1,
+                  "action": "MRZ 44文字の5文字目〜39文字目を取得（氏名エリア）",
+                  "result": "SMITH<<JOHN<MICHAEL<<<<<<<<<<<<<"
+                },
+                {
+                  "step": 2,
+                  "action": "「<<」で姓と名部分に分割",
+                  "result": ["SMITH", "JOHN<MICHAEL"]
+                },
+                {
+                  "step": 3,
+                  "action": "名部分を「<」で分割し、末尾のフィラーを除去",
+                  "result": ["JOHN", "MICHAEL"]
+                }
+              ],
+              "japanesePassport": {
+                "notes": "日本のパスポートのMRZはヘボン式ローマ字。漢字氏名はICチップに格納されない",
+                "example": "YAMADA<<TARO<<<<<<<<<<<<<<<<<<<<",
+                "nonHepburn": "非ヘボン式表記を申請した場合もMRZにはその表記が記載される"
+              }
+            },
+            "bankingMapping": {
+              "kanji_name": "ICチップに格納なし。券面OCRまたは申告で取得",
+              "kana_name": "ICチップに格納なし。MRZローマ字からカナ変換は不正確になる可能性",
+              "roman_name": "MRZ氏名エリアをパースして取得",
+              "notes": "パスポートのICチップからは漢字氏名・カナ氏名を取得できない。DG11(追加個人情報)にフルネームが格納される場合があるが、日本のパスポートでは通常未使用"
+            }
+          },
+          {
+            "source": "DG11 (追加個人情報) ※オプション",
+            "tag": "5F0E",
+            "encoding": "UTF-8",
+            "format": "フルネーム（MRZ以外の文字を含む場合）",
+            "structure": {
+              "notes": "一部の国のパスポートでは非ラテン文字の氏名をDG11に格納。日本のパスポートでは通常格納されない"
+            }
+          }
+        ],
+        "limitations": [
+          "漢字氏名・カナ氏名はICチップ内に格納されていない",
+          "MRZはヘボン式ローマ字のみで、元の漢字への復元は不可能",
+          "MRZ文字セットは英大文字・数字・<のみで、アクセント文字等は変換される",
+          "姓名の間の「<<」と名前内の「<」を正しく区別するパース処理が必要"
+        ]
+      },
+      "special-permanent-resident": {
+        "documentName": "特別永住者証明書",
+        "nameFields": [
+          {
+            "source": "記載事項 EF02",
+            "fields": [
+              {
+                "name": "氏名（ローマ字）",
+                "tag": "5F11",
+                "encoding": "UTF-8",
+                "format": "在留カードと同一仕様",
+                "structure": {
+                  "notes": "在留カードと同じローマ字表記"
+                }
+              },
+              {
+                "name": "通称名",
+                "tag": "5F11-2",
+                "encoding": "UTF-8",
+                "format": "日本語通称名",
+                "structure": {
+                  "notes": "特別永住者は通称名の使用が一般的。市区町村に届出た通称名が格納される",
+                  "example": "金田 正一"
+                }
+              }
+            ],
+            "bankingMapping": {
+              "kanji_name": "通称名フィールドを使用（ほぼ全員が通称名を持つ）",
+              "kana_name": "ICチップに格納なし。申告ベース",
+              "roman_name": "5F11(氏名) を使用",
+              "notes": "特別永住者は日常的に通称名を使用しているため、CIF登録は通称名が基本"
+            }
+          }
+        ],
+        "limitations": [
+          "カナ氏名はICチップに格納されていない",
+          "在留カードと同様の制約"
+        ]
+      }
+    },
+    "crossDocumentIssues": [
+      {
+        "issue": "カナ氏名の不在",
+        "description": "マイナンバーカード（日本人）、パスポート、在留カード、特別永住者証明書にはカナ氏名が格納されていない",
+        "impact": "銀行CIFではカナ氏名が必須。申告ベースまたはOCR・手入力での補完が必要",
+        "workaround": "運転免許証の5F07(呼び名カナ)のみICチップからカナ取得可能。他書類は申告ベース"
+      },
+      {
+        "issue": "文字コードの不統一",
+        "description": "運転免許証はJIS X 0208/0201、マイナンバーカード・在留カードはUTF-8、パスポートはASCII(MRZ文字セット)",
+        "impact": "統一的な文字列処理ができず、書類ごとに文字コード変換が必要",
+        "workaround": "入力段階でUTF-8に正規化し、JIS X 0208の機種依存文字に注意"
+      },
+      {
+        "issue": "姓名分割ルールの差異",
+        "description": "マイナンバー:スペース区切り、運転免許証:全角スペース区切り、パスポート:<<区切り、在留カード:不明確",
+        "impact": "姓名を正確に分離するためのパースロジックが書類ごとに異なる",
+        "workaround": "書類種別を判定した上で適切なパーサーを適用"
+      },
+      {
+        "issue": "外国人の通称名の扱い",
+        "description": "通称名の格納場所が書類によって異なる。マイナンバーカードはLF区切りで氏名フィールド内、運転免許証は独立タグ(5F08)、在留カードは別フィールド",
+        "impact": "通称名の抽出ロジックが書類ごとに異なる",
+        "workaround": "書類ごとの通称名抽出関数を実装し、結果を統一データ構造にマッピング"
+      },
+      {
+        "issue": "ローマ字氏名の有無",
+        "description": "運転免許証にはローマ字氏名が格納されていない。マイナンバーカードは外国人のみ。パスポートはMRZのヘボン式のみ",
+        "impact": "外国送金のSWIFT電文等でローマ字氏名が必要な場合、取得元が限られる",
+        "workaround": "パスポートMRZまたはマイナンバーカード(外国人)から取得。それ以外は申告ベース"
+      },
+      {
+        "issue": "氏名長の制限差異",
+        "description": "運転免許証:漢字24バイト(12文字)/カナ36バイト、マイナンバーカード:150バイト、MRZ:39文字",
+        "impact": "長い名前の外国人は書類によって切り詰められている可能性がある",
+        "workaround": "マイナンバーカードの氏名フィールド(150バイト)が最も余裕がある。照合時は前方一致も検討"
+      }
+    ]
+  },
+  "bankingDataMapping": {
+    "title": "勘定系CIFへのマッピング",
+    "description": "各書類のICチップデータを銀行の顧客情報ファイル(CIF)にマッピングする際の対応表",
+    "cifFields": [
+      {
+        "cifField": "漢字氏名（姓）",
+        "cifFormat": "全角文字 最大15文字",
+        "sources": {
+          "my-number-card": { "field": "DF22→LFでsplit→日本人:全体, 外国人:3行目", "parsing": "半角スペースでsplit→[0]", "reliability": "high" },
+          "drivers-license": { "field": "5F06(氏名)", "parsing": "全角スペースでsplit→[0]。JIS→UTF-8変換", "reliability": "high" },
+          "residence-card": { "field": "通称名フィールド", "parsing": "スペースでsplit→[0]", "reliability": "medium" },
+          "passport": { "field": "取得不可", "parsing": "MRZローマ字のみ。漢字は券面OCRまたは申告", "reliability": "low" },
+          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[0]", "reliability": "medium" }
+        }
+      },
+      {
+        "cifField": "漢字氏名（名）",
+        "cifFormat": "全角文字 最大15文字",
+        "sources": {
+          "my-number-card": { "field": "DF22→LFでsplit→日本人:全体, 外国人:3行目", "parsing": "半角スペースでsplit→[1]", "reliability": "high" },
+          "drivers-license": { "field": "5F06(氏名)", "parsing": "全角スペースでsplit→[1]。JIS→UTF-8変換", "reliability": "high" },
+          "residence-card": { "field": "通称名フィールド", "parsing": "スペースでsplit→[1]", "reliability": "medium" },
+          "passport": { "field": "取得不可", "parsing": "漢字は券面OCRまたは申告", "reliability": "low" },
+          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[1]", "reliability": "medium" }
+        }
+      },
+      {
+        "cifField": "カナ氏名（姓）",
+        "cifFormat": "全角カタカナ 最大15文字",
+        "sources": {
+          "my-number-card": { "field": "外国人:DF22→LFでsplit→2行目", "parsing": "外国人のみ。日本人はICチップから取得不可", "reliability": "foreignerOnly" },
+          "drivers-license": { "field": "5F07(呼び名カナ)", "parsing": "半角カナ→全角カナ変換。半角スペースでsplit→[0]", "reliability": "high" },
+          "residence-card": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "passport": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" }
+        }
+      },
+      {
+        "cifField": "カナ氏名（名）",
+        "cifFormat": "全角カタカナ 最大15文字",
+        "sources": {
+          "my-number-card": { "field": "外国人:DF22→LFでsplit→2行目", "parsing": "外国人のみ。半角スペースでsplit→[1]", "reliability": "foreignerOnly" },
+          "drivers-license": { "field": "5F07(呼び名カナ)", "parsing": "半角カナ→全角カナ変換。半角スペースでsplit→[1]", "reliability": "high" },
+          "residence-card": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "passport": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" }
+        }
+      },
+      {
+        "cifField": "ローマ字氏名",
+        "cifFormat": "半角英字 最大30文字",
+        "sources": {
+          "my-number-card": { "field": "外国人:DF22→LFでsplit→1行目", "parsing": "外国人のみ", "reliability": "foreignerOnly" },
+          "drivers-license": { "field": "取得不可", "parsing": "ICチップに格納なし", "reliability": "none" },
+          "residence-card": { "field": "5F11(氏名)", "parsing": "そのまま使用", "reliability": "high" },
+          "passport": { "field": "DG1 MRZ氏名エリア", "parsing": "<<で姓名分割、<をスペースに変換", "reliability": "high" },
+          "special-permanent-resident": { "field": "5F11(氏名)", "parsing": "そのまま使用", "reliability": "high" }
+        }
+      },
+      {
+        "cifField": "生年月日",
+        "cifFormat": "YYYYMMDD (8桁)",
+        "sources": {
+          "my-number-card": { "field": "DF24", "parsing": "UTF-8文字列 YYYYMMDD。そのまま使用", "reliability": "high" },
+          "drivers-license": { "field": "5F0A", "parsing": "BCD形式の和暦→西暦変換が必要。元号コード(1:明治,2:大正,3:昭和,4:平成,5:令和)+YYMMDD", "reliability": "high" },
+          "residence-card": { "field": "5F13", "parsing": "BCD形式。西暦YYYYMMDD", "reliability": "high" },
+          "passport": { "field": "DG1 MRZ", "parsing": "YYMMDD(2桁年)→YYYYMMDD変換。00-30→2000年代、31-99→1900年代(目安)", "reliability": "medium" },
+          "special-permanent-resident": { "field": "5F13", "parsing": "BCD形式。在留カードと同一", "reliability": "high" }
+        }
+      },
+      {
+        "cifField": "住所",
+        "cifFormat": "全角文字 最大60文字",
+        "sources": {
+          "my-number-card": { "field": "DF23", "parsing": "UTF-8。最大300バイト。そのまま使用", "reliability": "high" },
+          "drivers-license": { "field": "5F0B", "parsing": "JIS X 0208。最大70バイト。JIS→UTF-8変換", "reliability": "high" },
+          "residence-card": { "field": "5F1A", "parsing": "UTF-8。そのまま使用", "reliability": "high" },
+          "passport": { "field": "取得不可", "parsing": "パスポートICチップに住所情報なし", "reliability": "none" },
+          "special-permanent-resident": { "field": "5F1A相当", "parsing": "在留カードと同一", "reliability": "high" }
+        }
+      },
+      {
+        "cifField": "性別",
+        "cifFormat": "1:男 2:女",
+        "sources": {
+          "my-number-card": { "field": "DF25", "parsing": "1:男性, 2:女性。そのまま使用", "reliability": "high" },
+          "drivers-license": { "field": "なし（ICチップに性別なし）", "parsing": "運転免許証ICには性別が独立フィールドとして存在しない", "reliability": "none" },
+          "residence-card": { "field": "5F14", "parsing": "性別コード", "reliability": "high" },
+          "passport": { "field": "DG1 MRZ", "parsing": "M→1, F→2 に変換", "reliability": "high" },
+          "special-permanent-resident": { "field": "5F14", "parsing": "在留カードと同一", "reliability": "high" }
+        }
+      },
+      {
+        "cifField": "国籍",
+        "cifFormat": "国名コード",
+        "sources": {
+          "my-number-card": { "field": "なし", "parsing": "ICチップに国籍情報なし", "reliability": "none" },
+          "drivers-license": { "field": "なし", "parsing": "ICチップに国籍情報なし", "reliability": "none" },
+          "residence-card": { "field": "5F12", "parsing": "UTF-8文字列。国名コードへの変換が必要", "reliability": "high" },
+          "passport": { "field": "DG1 MRZ", "parsing": "3文字国コード (例:JPN)", "reliability": "high" },
+          "special-permanent-resident": { "field": "5F12", "parsing": "在留カードと同一", "reliability": "high" }
+        }
+      }
+    ]
+  }
+}
