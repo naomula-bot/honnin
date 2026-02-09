@@ -36,6 +36,13 @@
       "icon": "home"
     },
     {
+      "id": "residence-card-gen2",
+      "file": "residence-card-gen2.json",
+      "name": "第二世代在留カード",
+      "category": "planned",
+      "icon": "flight_land"
+    },
+    {
       "id": "next-gen-my-number-card",
       "file": "next-gen-my-number-card.json",
       "name": "次期マイナンバーカード",

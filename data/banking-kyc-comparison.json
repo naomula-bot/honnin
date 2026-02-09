@@ -501,6 +501,71 @@
         ]
       }
     },
+    "residence-card-gen2": {
+        "documentName": "第二世代在留カード（2026年6月〜）",
+        "references": [
+          {
+            "title": "第2世代在留カード等仕様書（一般公開用）Ver 1.0",
+            "url": "https://www.moj.go.jp/isa/content/001443404.pdf",
+            "description": "AES 128bit CBC、ECDSA(P-384)。DF/EFファイル構成。BER-TLV。UTF-8(BOMなし)"
+          },
+          {
+            "title": "特定在留カード等仕様書（一般公開用）Ver 1.0",
+            "url": "https://www.moj.go.jp/isa/content/001443406.pdf",
+            "description": "マイナンバーカード一体型（カード種別07/08）。JPKI電子証明書搭載"
+          },
+          {
+            "title": "令和6年入管法等改正法について",
+            "url": "https://www.moj.go.jp/isa/01_00461.html",
+            "description": "令和6年法律第59号。2026年6月施行"
+          },
+          {
+            "title": "在留カードとマイナンバーカードの一体化Ｑ＆Ａ",
+            "url": "https://www.moj.go.jp/isa/11_00051.html",
+            "description": "特定在留カードの取得方法・利用方法のQ&A"
+          }
+        ],
+        "specNote": "2026年6月14日運用開始予定。カード種別: 05=第二世代在留カード, 06=第二世代特別永住者証明書, 07=特定在留カード(一体型), 08=特定特別永住者証明書(一体型)。暗号はTDES→AES、署名はECDSA(P-384)に移行",
+        "nameFields": [
+          {
+            "source": "仕様書Ver1.0: MF/DF1(氏名イメージ・顔画像), MF/DF2(住居地等), MF/DF3(電子署名・証明書)",
+            "fields": [
+              {
+                "name": "氏名イメージ",
+                "encoding": "バイナリ（イメージデータ）",
+                "format": "氏名の印字イメージ（第1世代の「券面(表)イメージ」から変更）",
+                "structure": {
+                  "notes": "第2世代では氏名はイメージデータとして格納。テキストデータとしての氏名はICチップに直接格納されず、イメージからのOCR処理が必要となる可能性がある。セキュアメッセージング(AES 128bit CBC)で保護"
+                }
+              },
+              {
+                "name": "券面記載事項（テキストデータ）",
+                "encoding": "UTF-8（BOMなし）",
+                "format": "在留カード等番号、有効期限、生年月日、性別コード(1=男,2=女,3=不詳)、国籍コード、在留資格コード等",
+                "structure": {
+                  "notes": "在留期間・許可の種類・許可年月日は券面から削除されICチップのみに記録。性別コードに「3=不詳」が新設。読み出しにはAESセキュアメッセージング＋簡易認証コード照合が必要"
+                }
+              }
+            ],
+            "bankingMapping": {
+              "kanji_name": "氏名イメージからOCR処理、または簡易認証後のテキストデータから取得（仕様の詳細は仕様書参照）",
+              "kana_name": "ICチップに格納なし。申告ベースで取得",
+              "roman_name": "第1世代同様、ローマ字表記が取得可能と想定されるが、仕様書の詳細を要確認",
+              "notes": "第1世代からの主な変更: TDES→AES暗号化、BAC認証→簡易認証コード照合（在留カード等番号）。特定在留カード(07/08)ではJPKI署名用電子証明書から基本4情報の取得も可能"
+            }
+          }
+        ],
+        "limitations": [
+          "カナ氏名はICチップに格納されていない（第1世代と同様）",
+          "暗号方式がAES 128bit CBCに変更。既存のTDES対応リーダーは更新が必要",
+          "電子署名がECDSA(P-384)に変更。検証ロジックの改修が必要",
+          "認証方式がBAC(MRZ読取)→簡易認証コード(在留カード等番号)に変更。MRZ OCR不要に",
+          "性別コードに「3=不詳」が追加。CIF側の対応が必要",
+          "第1世代と第2世代の移行期間（両方の暗号方式への対応が必要）",
+          "特定在留カード(07/08)はマイナンバーカード機能も搭載。在留AP選択にはSELECTコマンドでAID指定が必須"
+        ]
+      }
+    },
     "crossDocumentIssues": [
       {
         "issue": "カナ氏名の不在",
@@ -534,6 +599,12 @@
         "workaround": "パスポートMRZまたはマイナンバーカード(外国人)から取得。それ以外は申告ベース"
       },
       {
+        "issue": "第二世代在留カードへの移行対応",
+        "description": "2026年6月から第二世代在留カードが運用開始。暗号方式(TDES→AES)、電子署名(PKCS#7→ECDSA P-384)、認証方式(BAC→簡易認証コード)が変更",
+        "impact": "移行期間中は第1世代(TDES/BAC)と第2世代(AES/簡易認証コード)の両方に対応が必要。性別コード「3=不詳」への対応も必要",
+        "workaround": "カード種別コード(EF02)で世代を判定: 01-04=第1世代, 05-08=第2世代。世代に応じて暗号・認証モジュールを切替。特定在留カード(07/08)ではJPKI基本4情報からの取得も検討"
+      },
+      {
         "issue": "氏名長の制限差異",
         "description": "運転免許証:漢字24バイト(12文字)/カナ36バイト、マイナンバーカード:150バイト、MRZ:39文字",
         "impact": "長い名前の外国人は書類によって切り詰められている可能性がある",
@@ -553,7 +624,8 @@
           "drivers-license": { "field": "5F06(氏名)", "parsing": "全角スペースでsplit→[0]。JIS→UTF-8変換", "reliability": "high" },
           "residence-card": { "field": "通称名フィールド", "parsing": "スペースでsplit→[0]", "reliability": "medium" },
           "passport": { "field": "取得不可", "parsing": "MRZローマ字のみ。漢字は券面OCRまたは申告", "reliability": "low" },
-          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[0]", "reliability": "medium" }
+          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[0]", "reliability": "medium" },
+          "residence-card-gen2": { "field": "氏名イメージ or テキストデータ（仕様書参照）", "parsing": "簡易認証コード照合→AES SM→データ読出。特定在留カード(07/08)はJPKI基本4情報も利用可", "reliability": "medium" }
         }
       },
       {
@@ -564,7 +636,8 @@
           "drivers-license": { "field": "5F06(氏名)", "parsing": "全角スペースでsplit→[1]。JIS→UTF-8変換", "reliability": "high" },
           "residence-card": { "field": "通称名フィールド", "parsing": "スペースでsplit→[1]", "reliability": "medium" },
           "passport": { "field": "取得不可", "parsing": "漢字は券面OCRまたは申告", "reliability": "low" },
-          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[1]", "reliability": "medium" }
+          "special-permanent-resident": { "field": "通称名フィールド", "parsing": "スペースでsplit→[1]", "reliability": "medium" },
+          "residence-card-gen2": { "field": "氏名イメージ or テキストデータ（仕様書参照）", "parsing": "スペースでsplit→[1]。特定在留カードはJPKI利用可", "reliability": "medium" }
         }
       },
       {
@@ -575,7 +648,8 @@
           "drivers-license": { "field": "5F07(呼び名カナ)", "parsing": "半角カナ→全角カナ変換。半角スペースでsplit→[0]", "reliability": "high" },
           "residence-card": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
           "passport": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
-          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" }
+          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "residence-card-gen2": { "field": "取得不可", "parsing": "申告ベース。特定在留カード(07/08)はJPKI経由でカナ取得不可（カナは格納されていない）", "reliability": "none" }
         }
       },
       {
@@ -586,7 +660,8 @@
           "drivers-license": { "field": "5F07(呼び名カナ)", "parsing": "半角カナ→全角カナ変換。半角スペースでsplit→[1]", "reliability": "high" },
           "residence-card": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
           "passport": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
-          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" }
+          "special-permanent-resident": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" },
+          "residence-card-gen2": { "field": "取得不可", "parsing": "申告ベース", "reliability": "none" }
         }
       },
       {
@@ -597,7 +672,8 @@
           "drivers-license": { "field": "取得不可", "parsing": "ICチップに格納なし", "reliability": "none" },
           "residence-card": { "field": "氏名フィールド", "parsing": "そのまま使用", "reliability": "high" },
           "passport": { "field": "DG1 MRZ氏名エリア", "parsing": "<<で姓名分割、<をスペースに変換", "reliability": "high" },
-          "special-permanent-resident": { "field": "氏名フィールド", "parsing": "そのまま使用", "reliability": "high" }
+          "special-permanent-resident": { "field": "氏名フィールド", "parsing": "そのまま使用", "reliability": "high" },
+          "residence-card-gen2": { "field": "ローマ字氏名（第1世代同様取得可と想定）", "parsing": "AES SM経由で読出。仕様書の詳細を要確認", "reliability": "medium" }
         }
       },
       {
@@ -608,7 +684,8 @@
           "drivers-license": { "field": "5F0A", "parsing": "BCD形式の和暦→西暦変換が必要。元号コード(1:明治,2:大正,3:昭和,4:平成,5:令和)+YYMMDD", "reliability": "high" },
           "residence-card": { "field": "仕様書参照", "parsing": "BCD形式。西暦YYYYMMDD", "reliability": "high" },
           "passport": { "field": "DG1 MRZ", "parsing": "YYMMDD(2桁年)→YYYYMMDD変換。00-30→2000年代、31-99→1900年代(目安)", "reliability": "medium" },
-          "special-permanent-resident": { "field": "仕様書参照", "parsing": "BCD形式。在留カードと同一", "reliability": "high" }
+          "special-permanent-resident": { "field": "仕様書参照", "parsing": "BCD形式。在留カードと同一", "reliability": "high" },
+          "residence-card-gen2": { "field": "券面記載事項/生年月日", "parsing": "YYYYMMDD形式。AES SM経由で読出", "reliability": "high" }
         }
       },
       {
@@ -619,7 +696,8 @@
           "drivers-license": { "field": "5F0B", "parsing": "JIS X 0208。最大70バイト。JIS→UTF-8変換", "reliability": "high" },
           "residence-card": { "field": "住居地フィールド", "parsing": "UTF-8。そのまま使用", "reliability": "high" },
           "passport": { "field": "取得不可", "parsing": "パスポートICチップに住所情報なし", "reliability": "none" },
-          "special-permanent-resident": { "field": "住居地フィールド", "parsing": "在留カードと同一", "reliability": "high" }
+          "special-permanent-resident": { "field": "住居地フィールド", "parsing": "在留カードと同一", "reliability": "high" },
+          "residence-card-gen2": { "field": "住居地イメージ(DF2/EF01)", "parsing": "イメージデータ。テキスト取得にはOCR処理が必要な可能性あり", "reliability": "medium" }
         }
       },
       {
@@ -630,7 +708,8 @@
           "drivers-license": { "field": "なし（ICチップに性別なし）", "parsing": "運転免許証ICには性別が独立フィールドとして存在しない", "reliability": "none" },
           "residence-card": { "field": "性別フィールド", "parsing": "性別コード", "reliability": "high" },
           "passport": { "field": "DG1 MRZ", "parsing": "M→1, F→2 に変換", "reliability": "high" },
-          "special-permanent-resident": { "field": "性別フィールド", "parsing": "在留カードと同一", "reliability": "high" }
+          "special-permanent-resident": { "field": "性別フィールド", "parsing": "在留カードと同一", "reliability": "high" },
+          "residence-card-gen2": { "field": "券面記載事項/性別コード", "parsing": "1=男,2=女,3=不詳。「3=不詳」は第2世代で新設。CIF側の対応要確認", "reliability": "high" }
         }
       },
       {
@@ -641,7 +720,8 @@
           "drivers-license": { "field": "なし", "parsing": "ICチップに国籍情報なし", "reliability": "none" },
           "residence-card": { "field": "国籍・地域フィールド", "parsing": "UTF-8文字列。国名コードへの変換が必要", "reliability": "high" },
           "passport": { "field": "DG1 MRZ", "parsing": "3文字国コード (例:JPN)", "reliability": "high" },
-          "special-permanent-resident": { "field": "国籍・地域フィールド", "parsing": "在留カードと同一", "reliability": "high" }
+          "special-permanent-resident": { "field": "国籍・地域フィールド", "parsing": "在留カードと同一", "reliability": "high" },
+          "residence-card-gen2": { "field": "券面記載事項/国籍コード", "parsing": "国籍コード。AES SM経由で読出", "reliability": "high" }
         }
       }
     ]

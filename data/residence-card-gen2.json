@@ -1,0 +1,368 @@
+{
+  "id": "residence-card-gen2",
+  "name": "第二世代在留カード",
+  "nameEn": "2nd Generation Residence Card",
+  "status": "planned",
+  "issuer": "出入国在留管理庁",
+  "legalBasis": "出入国管理及び難民認定法等の一部を改正する法律（令和6年法律第59号）",
+  "amlReference": "犯罪収益移転防止法施行規則 第7条第1号ハ",
+  "standard": {
+    "contactless": "JIS X 6322 B型（ISO/IEC 14443 Type B）",
+    "fileSystem": "ISO/IEC 7816-4 ファイルシステム（BER-TLV）"
+  },
+  "physicalSpec": {
+    "size": "ID-1 (85.6mm × 53.98mm)",
+    "chip": "非接触ICチップ",
+    "antenna": "JIS X 6322 B型（ISO/IEC 14443 Type B）準拠"
+  },
+  "cardTypes": [
+    { "code": "05", "name": "第二世代在留カード", "description": "現行在留カードの後継" },
+    { "code": "06", "name": "第二世代特別永住者証明書", "description": "現行特別永住者証明書の後継" },
+    { "code": "07", "name": "特定在留カード", "description": "在留カード＋マイナンバーカード一体型" },
+    { "code": "08", "name": "特定特別永住者証明書", "description": "特別永住者証明書＋マイナンバーカード一体型" }
+  ],
+  "operationStart": "2026年6月14日",
+  "security": {
+    "accessControl": [
+      {
+        "name": "簡易認証コード照合（在留カード等番号）",
+        "description": "在留カード等番号（12バイト）をセキュアメッセージング経由で照合。認証成功により民間で読み出し可能な情報へのアクセスが可能",
+        "method": "簡易認証コード(12バイト)にパディング(80 00 00 00)を付加→16バイト化→セッション鍵でAES暗号化→照合",
+        "failureResponse": "SW1-SW2=6300（照合失敗時）",
+        "retryLimit": "無制限（ICカード内に照合失敗回数を記録しない）"
+      }
+    ],
+    "encryption": "AES 128bit CBC モード（IV=00...00）",
+    "secureMessaging": "AES 128bit CBC セキュアメッセージング（セッション毎に鍵生成）",
+    "digitalSignature": {
+      "algorithm": "ECDSA",
+      "curve": "NIST P-384",
+      "signer": "出入国在留管理庁長官",
+      "signedObjects": ["氏名イメージ", "券面記載事項", "顔画像"]
+    },
+    "comparisonWithGen1": {
+      "encryption": "第1世代: TDES 2key CBC → 第2世代: AES 128bit CBC",
+      "signature": "第1世代: なし(PKCS#7) → 第2世代: ECDSA (NIST P-384)",
+      "signedObjects": "第1世代: 券面(表)イメージ＋顔画像 → 第2世代: 氏名イメージ＋券面記載事項＋顔画像"
+    }
+  },
+  "applications": [
+    {
+      "name": "在留カードAP（第二世代）",
+      "description": "第二世代在留カードの各種情報を格納。AES暗号化・ECDSA電子署名に対応",
+      "note": "カード起動直後はMFがカレント。各DFは16バイトのAIDで選択。特定在留カード(07/08)の場合はSELECTコマンドで在留APを明示的に選択する必要あり",
+      "dfStructure": [
+        {
+          "name": "MF（マスターファイル）",
+          "type": "DF",
+          "description": "カード起動直後のカレントディレクトリ",
+          "children": [
+            {
+              "name": "共通データ要素 (EF01)",
+              "type": "EF",
+              "efid": "2F01",
+              "shortEfid": "01",
+              "description": "仕様書バージョン番号等のカード基本情報",
+              "dataFormat": "BER-TLV",
+              "accessCondition": "認証不要（Free属性）",
+              "fields": [
+                { "name": "仕様書バージョン番号", "description": "IC仕様書のバージョン（Ver 1.0等）", "encoding": "UTF-8" }
+              ]
+            },
+            {
+              "name": "カード種別 (EF02)",
+              "type": "EF",
+              "efid": "2F02",
+              "shortEfid": "02",
+              "description": "カード種別コード",
+              "dataFormat": "BER-TLV",
+              "accessCondition": "認証不要（Free属性）",
+              "fields": [
+                { "name": "カード種別コード", "length": "2桁", "description": "05=第二世代在留カード, 06=第二世代特別永住者証明書, 07=特定在留カード, 08=特定特別永住者証明書" }
+              ]
+            },
+            {
+              "name": "DF1（券面イメージ・顔画像）",
+              "type": "DF",
+              "description": "氏名イメージおよび顔画像を格納",
+              "children": [
+                {
+                  "name": "氏名イメージ (DF1/EF01)",
+                  "type": "EF",
+                  "efid": "0001",
+                  "shortEfid": "01",
+                  "description": "氏名の印字イメージ（バイナリ）。第1世代の「券面(表)イメージ」から変更",
+                  "dataFormat": "バイナリ（イメージデータ）",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "氏名イメージ", "description": "氏名部分の印字イメージデータ", "encoding": "バイナリ" }
+                  ]
+                },
+                {
+                  "name": "顔画像 (DF1/EF02)",
+                  "type": "EF",
+                  "efid": "0002",
+                  "shortEfid": "02",
+                  "description": "顔写真データ。1歳以上16歳未満も対象に拡大",
+                  "dataFormat": "JPEG/JPEG2000",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "顔画像", "description": "JPEG/JPEG2000形式の顔画像データ。第2世代では1歳以上の全員に顔写真あり", "encoding": "バイナリ" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "DF2（裏面記載事項）",
+              "type": "DF",
+              "description": "住居地・資格外活動許可・在留期間更新申請情報を格納",
+              "children": [
+                {
+                  "name": "住居地イメージ (DF2/EF01)",
+                  "type": "EF",
+                  "efid": "0001",
+                  "shortEfid": "01",
+                  "description": "住居地（裏面追記）の印字イメージ",
+                  "dataFormat": "バイナリ（イメージデータ）",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "住居地イメージ", "description": "住居地部分の印字イメージデータ", "encoding": "バイナリ" }
+                  ]
+                },
+                {
+                  "name": "資格外活動包括許可欄 (DF2/EF02)",
+                  "type": "EF",
+                  "efid": "0002",
+                  "shortEfid": "02",
+                  "description": "資格外活動の包括許可情報",
+                  "dataFormat": "BER-TLV",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "資格外活動包括許可コード", "length": "7桁", "description": "在留資格許可コード（7桁）" },
+                    { "name": "包括許可期限", "encoding": "YYYYMMDD", "description": "資格外活動包括許可の期限日" }
+                  ]
+                },
+                {
+                  "name": "資格外活動個別許可欄 (DF2/EF03)",
+                  "type": "EF",
+                  "efid": "0003",
+                  "shortEfid": "03",
+                  "description": "資格外活動の個別許可情報",
+                  "dataFormat": "BER-TLV",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "資格外活動個別許可", "length": "1桁", "description": "0=無し, 1=有り" }
+                  ]
+                },
+                {
+                  "name": "在留期間等更新申請欄 (DF2/EF04)",
+                  "type": "EF",
+                  "efid": "0004",
+                  "shortEfid": "04",
+                  "description": "在留期間更新等の許可申請状況（第2世代で新設）",
+                  "dataFormat": "BER-TLV",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "在留期間更新等許可申請ステータスコード", "length": "1桁", "description": "0=無し, 1=申請中。第2世代で新設されたデータ項目" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "DF3（電子署名・証明書）",
+              "type": "DF",
+              "description": "チェックコードおよびECDSA公開鍵証明書を格納",
+              "children": [
+                {
+                  "name": "チェックコード・公開鍵証明書 (DF3/EF01)",
+                  "type": "EF",
+                  "efid": "0001",
+                  "shortEfid": "01",
+                  "description": "ECDSA(NIST P-384)の公開鍵証明書および電子署名データ",
+                  "dataFormat": "ECDSA署名データ",
+                  "accessCondition": "SM属性（セキュアメッセージング必須）",
+                  "fields": [
+                    { "name": "チェックコード", "description": "データ整合性確認用コード" },
+                    { "name": "公開鍵証明書", "description": "ECDSA(NIST P-384)公開鍵証明書。電子署名検証に使用" },
+                    { "name": "電子署名", "description": "出入国在留管理庁長官によるECDSA署名。対象: 氏名イメージ＋券面記載事項＋顔画像" }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "券面記載事項データ",
+      "description": "ICチップに記録される券面記載事項。第2世代では「在留期間」「許可の種類」「許可年月日」が券面から削除されICチップのみの記録に変更",
+      "note": "文字の符号化方式はUTF-8（BOMなし）。日付はYYYYMMDD形式",
+      "dfStructure": [
+        {
+          "name": "券面記載事項（ICチップ記録）",
+          "type": "DF",
+          "description": "在留カード等番号による認証後にセキュアメッセージングで読み出し可能",
+          "fields": [
+            { "name": "在留カード等番号", "encoding": "英字＋数字", "length": "12バイト", "description": "在留カードまたは特別永住者証明書の番号" },
+            { "name": "有効期限満了日", "encoding": "YYYYMMDD", "description": "カードの有効期限満了日" },
+            { "name": "生年月日", "encoding": "YYYYMMDD", "description": "在留者の生年月日" },
+            { "name": "性別コード", "length": "1桁", "description": "1=男, 2=女, 3=不詳（第2世代で「3=不詳」を新設）" },
+            { "name": "国籍コード", "description": "国籍の属する国又は地域のコード" },
+            { "name": "在留資格コード", "length": "3桁", "description": "在留資格の種類を示すコード" },
+            { "name": "在留期間", "encoding": "YYMMDDD", "description": "在留期間。第2世代では券面から削除されICチップのみに記録" },
+            { "name": "許可の種類", "length": "2桁", "description": "在留資格許可コード。第2世代では券面から削除されICチップのみに記録" },
+            { "name": "許可年月日", "encoding": "YYYYMMDD", "description": "許可年月日。第2世代では券面から削除されICチップのみに記録" },
+            { "name": "就労制限の有無", "length": "1桁", "description": "0=無し, 1=在留資格に基づく就労のみ可, 2=就労不可, 3=指定書指定の就労のみ可" },
+            { "name": "在留期間の満了日", "encoding": "YYYYMMDD", "description": "在留期間の満了日" },
+            { "name": "在留期間更新等許可申請ステータスコード", "length": "1桁", "description": "0=無し, 1=申請中。第2世代で新設" },
+            { "name": "出入国在留管理庁長官記載の有無", "length": "1桁", "description": "0=無し, 1=長官が記録。第2世代で新設" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "特定在留カード追加機能（カード種別07/08のみ）",
+      "description": "マイナンバーカードとの一体型カードにおける追加機能。JPKI電子証明書等を搭載",
+      "note": "在留APとマイナンバーカード機能は独立。在留AP選択にはSELECTコマンドで在留APのAIDを明示的に指定する必要あり。マイナンバーカード機能部分はJ-LISが管理",
+      "dfStructure": [
+        {
+          "name": "マイナンバーカード機能",
+          "type": "DF",
+          "description": "特定在留カードに搭載されるマイナンバーカード機能（J-LIS管理）",
+          "children": [
+            {
+              "name": "JPKI-AP（公的個人認証サービス）",
+              "type": "DF",
+              "aid": "D392F000260100000001",
+              "description": "署名用・利用者証明用の電子証明書を格納",
+              "children": [
+                {
+                  "name": "署名用電子証明書",
+                  "type": "EF",
+                  "description": "電子申請（e-Tax等）・電子文書の真正性証明に使用。有効期限5年",
+                  "accessCondition": "署名用PIN（6～16桁英数字、5回失敗でロック）",
+                  "fields": [
+                    { "name": "署名用電子証明書", "description": "X.509v3形式。基本4情報（氏名・住所・生年月日・性別）を含む", "encoding": "X.509v3 DER" }
+                  ]
+                },
+                {
+                  "name": "利用者証明用電子証明書",
+                  "type": "EF",
+                  "description": "ログイン認証（マイナポータル等）・コンビニ交付に使用。有効期限5年",
+                  "accessCondition": "利用者証明用PIN（4桁数字、3回失敗でロック）",
+                  "fields": [
+                    { "name": "利用者証明用電子証明書", "description": "X.509v3形式。基本4情報を含まない（シリアル番号のみ）", "encoding": "X.509v3 DER" }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "券面事項入力補助AP",
+              "type": "DF",
+              "description": "基本4情報（氏名・住所・生年月日・性別）および個人番号を格納",
+              "accessCondition": "暗証番号認証（4桁数字）",
+              "fields": [
+                { "name": "個人番号（マイナンバー）", "description": "12桁の個人番号。税務関連取引でのみ利用可" },
+                { "name": "基本4情報", "description": "氏名・住所・生年月日・性別", "encoding": "UTF-8" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "apduCommands": [
+    { "name": "SELECT (AID)", "command": "00 A4 04 0C 10 [AID]", "description": "在留カードAP選択（16バイトAID指定）。特定在留カードでは必須" },
+    { "name": "SELECT (EF)", "command": "00 A4 02 0C 02 [EF-ID]", "description": "EF選択（セキュアメッセージング適用）" },
+    { "name": "VERIFY (簡易認証コード)", "command": "0C 20 00 [P2] [Lc] [暗号化データ]", "description": "在留カード等番号による認証。SM必須。失敗時SW=6300。回数制限なし" },
+    { "name": "READ BINARY (SM)", "command": "0C B0 [P1] [P2] [Le]", "description": "データ読み取り（AESセキュアメッセージング適用）" },
+    { "name": "GET CHALLENGE", "command": "00 84 00 00 [Le]", "description": "セッション鍵生成用の乱数取得" }
+  ],
+  "verification": {
+    "method": "ECDSA電子署名検証 + 出入国在留管理庁の在留カード等番号失効情報照会",
+    "provider": "出入国在留管理庁",
+    "process": [
+      "1. NFCリーダーで非接触通信を確立（ISO/IEC 14443 Type B）",
+      "2. 在留カードAPをSELECTコマンドで選択",
+      "3. GET CHALLENGEでセッション用乱数を取得",
+      "4. AESセキュアメッセージングを確立",
+      "5. VERIFYコマンドで在留カード等番号（簡易認証コード）を照合",
+      "6. READ BINARYでEFデータをセキュアメッセージング経由で読み取り",
+      "7. DF3/EF01から公開鍵証明書と電子署名を取得",
+      "8. ECDSA(NIST P-384)で電子署名を検証し、氏名イメージ・券面記載事項・顔画像の真正性を確認",
+      "9. 出入国在留管理庁の在留カード等番号失効情報照会を実施"
+    ],
+    "onlineCheck": "在留カード等番号失効情報照会（出入国在留管理庁提供）",
+    "notes": "第1世代のBAC認証（MRZ利用）から、簡易認証コード（在留カード等番号）による認証方式に変更"
+  },
+  "changesFromGen1": {
+    "title": "第1世代からの主な変更点",
+    "items": [
+      {
+        "category": "暗号方式",
+        "change": "TDES 2key CBC → AES 128bit CBC (IV=00...00)",
+        "impact": "リーダーアプリの暗号モジュール更新が必要"
+      },
+      {
+        "category": "電子署名",
+        "change": "PKCS#7 SignedData → ECDSA (NIST P-384)",
+        "impact": "署名検証ロジックの全面改修が必要"
+      },
+      {
+        "category": "署名対象",
+        "change": "券面(表)イメージ＋顔画像 → 氏名イメージ＋券面記載事項＋顔画像",
+        "impact": "券面記載事項の真正性もIC内で検証可能に"
+      },
+      {
+        "category": "認証方式",
+        "change": "BAC認証（MRZ読取必要）→ 簡易認証コード照合（在留カード等番号）",
+        "impact": "MRZのOCR読取が不要に。在留カード等番号の手入力またはバーコード読取で認証"
+      },
+      {
+        "category": "券面記載事項",
+        "change": "在留期間・許可の種類・許可年月日・交付年月日を券面から削除、ICチップのみに記録",
+        "impact": "これらの情報はICチップ読取でのみ取得可能"
+      },
+      {
+        "category": "性別コード",
+        "change": "1=男/2=女 → 1=男/2=女/3=不詳",
+        "impact": "「不詳」に対応するCIF項目の整備が必要"
+      },
+      {
+        "category": "顔写真対象",
+        "change": "16歳以上のみ → 1歳以上の全員",
+        "impact": "顔認証の適用範囲が拡大"
+      },
+      {
+        "category": "有効期間",
+        "change": "永住者等: 交付日後7年 → 交付日後10回目の誕生日の前日",
+        "impact": "有効期限計算ロジックの変更が必要"
+      },
+      {
+        "category": "新規データ項目",
+        "change": "在留期間更新等許可申請ステータスコード、出入国在留管理庁長官記載の有無を新設",
+        "impact": "更新申請中であることをIC内で判別可能に"
+      },
+      {
+        "category": "一体型カード",
+        "change": "特定在留カード（カード種別07/08）として在留カード＋マイナンバーカードの一体化が可能",
+        "impact": "1枚で在留資格証明とJPKI電子証明書の両方を利用可能"
+      }
+    ]
+  },
+  "metadata": {
+    "lastUpdated": "2026-02-09",
+    "specVersion": "第2世代在留カード等仕様書（一般公開用）Ver 1.0",
+    "disclaimer": "2026年6月14日運用開始予定。本情報は公開仕様書 Ver 1.0に基づきます。正式運用時に仕様が変更される可能性があります。",
+    "references": [
+      "出入国在留管理庁 第2世代在留カード等仕様書（一般公開用）Ver 1.0",
+      "出入国在留管理庁 特定在留カード等仕様書（一般公開用）Ver 1.0",
+      "令和6年法律第59号（入管法等改正法）"
+    ],
+    "sampleLoan": {
+      "description": "ICチップ読み取り製品開発向けにサンプルカードの貸与あり",
+      "contact": "residence_card_loan@moj.go.jp",
+      "department": "出入国在留管理庁総務課情報システム管理室"
+    }
+  }
+}

@@ -614,6 +614,7 @@ const App = {
       'my-number-card': 'マイナンバー',
       'drivers-license': '運転免許証',
       'residence-card': '在留カード',
+      'residence-card-gen2': '第二世代在留カード',
       'passport': 'パスポート',
       'special-permanent-resident': '特別永住者'
     };
